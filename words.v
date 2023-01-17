@@ -2,6 +2,7 @@ Require Import List Permutation Factorial Arith.
 Require Import Lia.
 Import ListNotations.
 
+Section factorials.
 Fixpoint falling_fact n x :=
 match n, x with
 | 0, _ => 1
@@ -43,6 +44,7 @@ Proof.
   induction n; [ reflexivity | ].
   rewrite rising_fact_S, IHn; constructor.
 Qed.
+End factorials.
 
 Section words.
 Variable A: Type.
@@ -60,16 +62,21 @@ Proof.
   assumption.
 Qed.
 
-Definition combine_n_letters n := Nat.iter n combine_one_letter.
+(* Nat.iter n combine_one_letter *)
+Fixpoint combine_n_letters n (words : list word) := 
+match n with
+| 0 => words
+| S n => combine_n_letters n (combine_one_letter words)
+end.
 
 Lemma combine_n_letters_length n words:
-  length (combine_n_letters n words) = .
+  length (combine_n_letters n words) = length words * (length alphabet)^n.
 Proof.
-  induction n.
-  - 
+  revert words. induction n.
+  - cbn. symmetry. apply Nat.mul_1_r.
+  - intro words. cbn.
+    rewrite IHn, combine_one_letter_length.
+    symmetry. apply Nat.mul_assoc.
+Qed.
 
 End words.
-
-Variant three := a | b | c.
-Compute combine_one_letter _ [a;b;c] [[]].
-
