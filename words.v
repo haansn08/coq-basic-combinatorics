@@ -46,37 +46,66 @@ Proof.
 Qed.
 End factorials.
 
-Section words.
-Variable A: Type.
-Variable alphabet: list A.
-Notation word := (list A).
+Variant alphabet := a|b|c|d.
 
-Definition combine_one_letter (words: list word) : list word :=
-  flat_map (fun w: word => map (fun x => x::w) alphabet) words.
+Section permutations.
 
-Lemma combine_one_letter_length words:
-  length (combine_one_letter words) = length words * length alphabet.
+Definition insert_at {A} i x (l: list A) :=
+  firstn i l ++ [x] ++ skipn i l.
+
+Definition insert_all {A} x (l: list A) :=
+  (fix f i :=
+    match i with 
+    | 0 => [ insert_at 0 x l ]
+    | S i' => insert_at i x l :: f i'
+    end
+  ) (length l).
+
+Lemma Add_nil {A} x (l: list A):
+  Add x [] l <-> l = [x].
 Proof.
-  induction words; [reflexivity | simpl].
-  rewrite app_length, map_length. f_equal.
-  assumption.
+  split; intro H.
+  - remember [] as l'. destruct H.
+    + reflexivity.
+    + discriminate Heql'.
+  - rewrite H. constructor.
 Qed.
 
-(* Nat.iter n combine_one_letter *)
-Fixpoint combine_n_letters n (words : list word) := 
-match n with
-| 0 => words
-| S n => combine_n_letters n (combine_one_letter words)
+Lemma Add_insert_all {A} x:
+  forall (l l': list A), Add x l l' <-> In l' (insert_all x l).
+Proof.
+  intros l l'. split; intro H.
+  - induction H.
+    + unfold insert_all. induction (length l).
+      * left. reflexivity.
+      * cbn. destruct l.
+        -- left. reflexivity.
+        -- right. assumption.
+    + 
+Abort. 
+
+Lemma insert_all_length {A} x (l: list A):
+  length (insert_all x l) = S (length l).
+Proof.
+  remember (length l) as n. revert Heqn. revert l. induction n.
+  - intros l H. symmetry in H. apply length_zero_iff_nil in H.
+    subst l. reflexivity.
+  - intros l H. 
+Abort.
+
+Fixpoint permutations {A} (l: list A) :=
+match l with
+| nil => [[]]
+| x::l' => flat_map (insert_all x) (permutations l')
 end.
 
-Lemma combine_n_letters_length n words:
-  length (combine_n_letters n words) = length words * (length alphabet)^n.
+Lemma permutations_spec {A}:
+  forall (l l': list A), Permutation l l' <-> In l' (permutations l).
 Proof.
-  revert words. induction n.
-  - cbn. symmetry. apply Nat.mul_1_r.
-  - intro words. cbn.
-    rewrite IHn, combine_one_letter_length.
-    symmetry. apply Nat.mul_assoc.
-Qed.
+  intros l l'. split; intro H.
+  - induction H.
+    + left. reflexivity.
+    + apply in_flat_map. exists l'.
+Abort.
 
-End words.
+End permutations.
