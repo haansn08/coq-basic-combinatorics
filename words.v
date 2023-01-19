@@ -49,19 +49,13 @@ End factorials.
 Variant alphabet := a|b|c|d.
 
 Section permutations.
+Variable A : Type.
+Implicit Type l : list A.
 
-Definition insert_at {A} i x (l: list A) :=
+Definition insert_at i x l :=
   firstn i l ++ [x] ++ skipn i l.
 
-Definition insert_all {A} x (l: list A) :=
-  (fix f i :=
-    match i with 
-    | 0 => [ insert_at 0 x l ]
-    | S i' => insert_at i x l :: f i'
-    end
-  ) (length l).
-
-Lemma Add_nil {A} x (l: list A):
+Lemma Add_nil x l:
   Add x [] l <-> l = [x].
 Proof.
   split; intro H.
@@ -71,36 +65,48 @@ Proof.
   - rewrite H. constructor.
 Qed.
 
-Lemma Add_insert_all {A} x:
+Fixpoint insert_all0 x (left right: list A) :=
+match right with
+| nil => [left++[x]]
+| y::right' => (left++x::right)::(insert_all0 x (left++[y]) right')
+end.
+
+Definition insert_all x l := insert_all0 x nil l.
+
+Lemma insert_all0_length_left x l:
+  forall left, length (insert_all0 x left l) = length (insert_all x l).
+Proof.
+  induction l.
+  - reflexivity.
+  - intro left. cbn. rewrite !IHl. reflexivity.
+Qed. 
+
+Lemma Add_insert_all x:
   forall (l l': list A), Add x l l' <-> In l' (insert_all x l).
 Proof.
   intros l l'. split; intro H.
   - induction H.
-    + unfold insert_all. induction (length l).
-      * left. reflexivity.
-      * cbn. destruct l.
-        -- left. reflexivity.
-        -- right. assumption.
-    + 
+    + destruct l; left; reflexivity.
+    + apply Add_split in H. destruct H as [l1 [l2 [-> ->]]].
+      cbn. right. 
 Abort. 
 
-Lemma insert_all_length {A} x (l: list A):
+Lemma insert_all_length x l:
   length (insert_all x l) = S (length l).
 Proof.
-  remember (length l) as n. revert Heqn. revert l. induction n.
-  - intros l H. symmetry in H. apply length_zero_iff_nil in H.
-    subst l. reflexivity.
-  - intros l H. 
-Abort.
+  unfold insert_all. induction l.
+  - reflexivity.
+  - cbn. f_equal. rewrite insert_all0_length_left in *. assumption.
+Qed.
 
-Fixpoint permutations {A} (l: list A) :=
+Fixpoint permutations l :=
 match l with
 | nil => [[]]
 | x::l' => flat_map (insert_all x) (permutations l')
 end.
 
-Lemma permutations_spec {A}:
-  forall (l l': list A), Permutation l l' <-> In l' (permutations l).
+Lemma permutations_spec:
+  forall l l', Permutation l l' <-> In l' (permutations l).
 Proof.
   intros l l'. split; intro H.
   - induction H.
