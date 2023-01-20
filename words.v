@@ -50,21 +50,27 @@ Proof.
   rewrite IHn. reflexivity.
 Qed.
 
-Lemma falling_raising_fact n k:
-  k <= n -> falling_fact n k = rising_fact n (n-k).
-Proof.
-  induction n; intros H; [reflexivity | ].
-  cbn.
-Abort.
-
 Lemma rising_fact_S n x:
-  0 < x -> rising_fact (S n) x = (x + n) * rising_fact n x.
+  rising_fact (S n) x = (x + n) * rising_fact n x.
 Proof.
-  revert x. induction n; intros x H.
+  revert x. induction n; intros x.
   - cbn. auto.
   - remember (S n) as m. (* to avoid zealous cbn *)
     cbn. rewrite IHn by auto.
     subst m. cbn. lia. (* ??? *) 
+Qed.
+
+Lemma falling_raising_fact n x:
+  n <= S x -> falling_fact n x = rising_fact n (S x-n).
+Proof.
+  revert x. induction n.
+  - reflexivity.
+  - intros x H%le_S_n. rewrite rising_fact_S. destruct x.
+    + cbn. lia.
+    + cbn [falling_fact]. rewrite IHn by assumption.
+      replace (S (S x) - S n) with (S x - n) by lia.
+      set (k := rising_fact n (S x - n)).
+      rewrite Nat.sub_add by assumption. reflexivity.
 Qed.
 
 Lemma rising_fact_fact n: rising_fact n 1 = fact n.
