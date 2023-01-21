@@ -2,8 +2,8 @@ Require Import List Permutation Factorial Arith.
 Require Import Lia Setoid.
 Import ListNotations.
 
-Section flat_map.
 (* TODO: remove when https://github.com/coq/coq/pull/17082 is released *)
+Section flat_map.
 Lemma concat_length A l:
   length (concat l) = list_sum (map (@length A) l).
 Proof.
@@ -80,8 +80,7 @@ Proof.
 Qed.
 End factorials.
 
-Variant alphabet := a|b|c|d.
-
+(* https://github.com/math-comp/math-comp/blob/master/mathcomp/ssreflect/seq.v#L4326 *)
 Section permutations.
 Variable A : Type.
 Implicit Type l : list A.
@@ -99,10 +98,41 @@ Proof.
   - rewrite H. constructor.
 Qed.
 
+Lemma insert_at_length i x l:
+  length (insert_at i x l) = S (length l).
+Proof.
+  unfold insert_at. autorewrite with list. cbn.
+  enough (length (firstn i l) + length (skipn i l) = length l) by lia.
+  rewrite <- app_length, firstn_skipn. reflexivity.
+Qed.
+
+Lemma insert_at_cons i x l a:
+  insert_at (S i) x (a :: l) = a :: insert_at i x l.
+Proof. cbn. f_equal. Qed.
+
+Lemma Add_insert_at x l:
+  forall l', Add x l l' <-> exists i, i <= length l /\ l' = insert_at i x l.
+Proof.
+  intro l'. split; intro H.
+  - induction H.
+    + exists 0. split; [apply Nat.le_0_l | reflexivity].
+    + destruct IHAdd as [i [Hi ->]]. exists (S i). split.
+      * cbn. apply le_n_S. assumption.
+      * cbn. f_equal.
+  - destruct H as [i [Hi H]].
+    revert Hi H. revert l l'. induction i; intros l l' Hi H.
+    + rewrite H. constructor.
+    + destruct l.
+      * exfalso. eapply Nat.nle_succ_0. exact Hi.
+      * rewrite H, insert_at_cons. constructor.
+        apply IHi; [ | reflexivity]. apply le_S_n. assumption.
+Qed.
+
 Fixpoint additions0 x (left right: list A) :=
+(left++x::right)::
 match right with
-| nil => [left++[x]]
-| y::right' => (left++x::right)::(additions0 x (left++[y]) right')
+| nil => nil
+| y::right' => additions0 x (left++[y]) right'
 end.
 
 Definition additions x l := additions0 x nil l.
@@ -127,13 +157,13 @@ Proof. (* TODO: redo *)
   - intro left. split; intro H.
     + cbn in *. destruct H.
       * left. apply app_inv_head in H. assumption.
-      * right. apply (IHl [a0]). specialize (IHl (left ++ [a0])).
-        replace ((left ++ [a0]) ++ l) with (left ++ a0 :: l) in IHl.
+      * right. apply (IHl [a]). specialize (IHl (left ++ [a])).
+        replace ((left ++ [a]) ++ l) with (left ++ a :: l) in IHl.
         -- apply IHl in H. assumption.
         -- rewrite app_assoc_reverse. reflexivity.
-    + right. specialize (IHl (left ++ [a0])) as H1.
-      replace ((left ++ [a0]) ++ l) with (left ++ a0 :: l) in H1.
-      * apply H1. specialize (IHl [a0]). cbn in *. destruct H.
+    + right. specialize (IHl (left ++ [a])) as H1.
+      replace ((left ++ [a]) ++ l) with (left ++ a :: l) in H1.
+      * apply H1. specialize (IHl [a]). cbn in *. destruct H.
         -- exfalso. apply f_equal with (f := @length _) in H.
            cbn in H. injection H. clear. apply Nat.neq_succ_diag_l.
         -- apply IHl. assumption.
