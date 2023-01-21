@@ -128,75 +128,32 @@ Proof.
         apply IHi; [ | reflexivity]. apply le_S_n. assumption.
 Qed.
 
-Fixpoint additions0 x (left right: list A) :=
-(left++x::right)::
-match right with
-| nil => nil
-| y::right' => additions0 x (left++[y]) right'
-end.
+Definition additions x l :=
+  map (fun i => insert_at i x l) (seq 0 (S (length l))).
 
-Definition additions x l := additions0 x nil l.
-
-Lemma additions0_length_left x l:
-  forall left, length (additions0 x left l) = length (additions x l).
-Proof.
-  induction l.
-  - reflexivity.
-  - intro left. cbn. rewrite !IHl. reflexivity.
+Lemma in_additions x l l':
+  In l' (additions x l) <-> exists i, i <= length l /\ l' = insert_at i x l.
+Proof. 
+  split; intro H.
+  - apply in_map_iff in H as [i [H0 H1]]. exists i.
+    apply in_seq in H1 as [_ H1]. split.
+    + apply le_S_n. exact H1.
+    + symmetry. exact H0.
+  - apply in_map_iff. destruct H as [i [H1 H0]].
+    exists i. split.
+    + symmetry. exact H0.
+    + apply in_seq. split.
+      * apply Nat.le_0_l.
+      * apply le_n_S. exact H1.
 Qed.
 
-Lemma additions0_left x l:
-  forall left, In (left ++ l) (additions0 x left l) <-> In l (additions x l).
-Proof. (* TODO: redo *)
-  induction l.
-  - intro left. cbn. split; intros [].
-    + apply app_inv_head in H. left. assumption.
-    + contradiction H.
-    + left. f_equal. assumption.
-    + contradiction H.
-  - intro left. split; intro H.
-    + cbn in *. destruct H.
-      * left. apply app_inv_head in H. assumption.
-      * right. apply (IHl [a]). specialize (IHl (left ++ [a])).
-        replace ((left ++ [a]) ++ l) with (left ++ a :: l) in IHl.
-        -- apply IHl in H. assumption.
-        -- rewrite app_assoc_reverse. reflexivity.
-    + right. specialize (IHl (left ++ [a])) as H1.
-      replace ((left ++ [a]) ++ l) with (left ++ a :: l) in H1.
-      * apply H1. specialize (IHl [a]). cbn in *. destruct H.
-        -- exfalso. apply f_equal with (f := @length _) in H.
-           cbn in H. injection H. clear. apply Nat.neq_succ_diag_l.
-        -- apply IHl. assumption.
-      * rewrite app_assoc_reverse. reflexivity.
-Qed.
-
-Lemma insert_all_in x (l1 l2: list A):
-  In (l1++x::l2) (additions x (l1++l2)).
-Proof.
-  revert l2. induction l1.
-  - destruct l2; left; reflexivity.
-  - intros. right. cbn. 
-Abort.
-
-Lemma Add_insert_all x:
+Corollary additions_spec x:
   forall (l l': list A), Add x l l' <-> In l' (additions x l).
-Proof.
-  intros l l'. split; intro H.
-  - induction H.
-    + destruct l; left; reflexivity.
-    + apply Add_split in H. destruct H as [l1 [l2 [-> ->]]].
-      right. induction l1.
-      * destruct l2; left; reflexivity.
-      * right. cbn. cbn in IHl1.
-Abort. 
+Proof. intros l l'. rewrite Add_insert_at, in_additions. reflexivity. Qed.
 
 Lemma additions_length x l:
   length (additions x l) = S (length l).
-Proof.
-  unfold additions. induction l.
-  - reflexivity.
-  - cbn. f_equal. rewrite additions0_length_left in *. assumption.
-Qed.
+Proof. unfold additions. rewrite map_length, seq_length. reflexivity. Qed.
 
 Fixpoint permutations l :=
 match l with
@@ -204,13 +161,27 @@ match l with
 | x::l' => flat_map (additions x) (permutations l')
 end.
 
+Lemma permutations_refl l:
+  In l (permutations l).
+Proof.
+  induction l; [now left|].
+  cbn. apply in_flat_map. exists l.
+  split; [assumption | now left].
+Qed.
+
 Lemma permutations_spec:
   forall l l', Permutation l l' <-> In l' (permutations l).
 Proof.
   intros l l'. split; intro H.
   - induction H.
-    + left. reflexivity.
-    + apply in_flat_map. exists l'.
+    + apply permutations_refl.
+    + cbn. apply in_flat_map. exists l'.
+      split; [assumption | apply additions_spec; constructor].
+    + cbn. apply in_flat_map. exists (x :: l). split.
+      * apply in_flat_map. exists l.
+        split; [apply permutations_refl | now left].
+      * apply additions_spec. repeat constructor.
+    + 
 Admitted.
 
 Theorem permutations_fact l:
