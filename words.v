@@ -169,6 +169,16 @@ Proof.
   split; [assumption | now left].
 Qed.
 
+Lemma Permutation_permutation l l':
+  Permutation l l' -> Permutation (permutations l) (permutations l').
+Proof.
+Admitted.
+
+Lemma Permutation_additions x l l':
+  Permutation l l' -> Permutation (additions x l) (additions x l').
+Proof.
+Admitted.
+
 Lemma permutations_spec:
   forall l l', Permutation l l' <-> In l' (permutations l).
 Proof.
@@ -181,8 +191,17 @@ Proof.
       * apply in_flat_map. exists l.
         split; [apply permutations_refl | now left].
       * apply additions_spec. repeat constructor.
-    + 
-Admitted.
+    + eapply Permutation_in.
+      * apply Permutation_permutation. symmetry. exact H.
+      * assumption.
+  - revert H. revert l'. induction l.
+    + intros l' [->|[]]. apply Permutation_refl.
+    + intros l' H. cbn in H. apply in_flat_map in H as [x [H0 H1]].
+      specialize (IHl x H0).
+      apply Permutation_Add, additions_spec. eapply Permutation_in.
+      * apply Permutation_additions. symmetry. exact IHl.
+      * assumption.
+Qed.
 
 Theorem permutations_fact l:
   length (permutations l) = fact (length l).
