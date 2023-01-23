@@ -151,6 +151,12 @@ Corollary additions_spec x:
   forall (l l': list A), Add x l l' <-> In l' (additions x l).
 Proof. intros l l'. rewrite Add_insert_at, in_additions. reflexivity. Qed.
 
+Lemma additions_cons x a l:
+  additions x (a :: l) = (x::a::l)::map (cons a) (additions x l).
+Proof.
+  cbn. f_equal. f_equal. rewrite map_map.
+Abort.
+
 Lemma additions_length x l:
   length (additions x l) = S (length l).
 Proof. unfold additions. rewrite map_length, seq_length. reflexivity. Qed.
@@ -169,7 +175,7 @@ Proof.
   split; [assumption | now left].
 Qed.
 
-Lemma Permutation_permutation l l':
+Lemma Permutation_permutations l l':
   Permutation l l' -> Permutation (permutations l) (permutations l').
 Proof.
 Admitted.
@@ -177,6 +183,9 @@ Admitted.
 Lemma Permutation_additions x l l':
   Permutation l l' -> Permutation (additions x l) (additions x l').
 Proof.
+  intro H. induction H.
+  - cbn. apply Permutation_refl.
+  - 
 Admitted.
 
 Lemma permutations_spec:
@@ -192,7 +201,7 @@ Proof.
         split; [apply permutations_refl | now left].
       * apply additions_spec. repeat constructor.
     + eapply Permutation_in.
-      * apply Permutation_permutation. symmetry. exact H.
+      * apply Permutation_permutations. symmetry. exact H.
       * assumption.
   - revert H. revert l'. induction l.
     + intros l' [->|[]]. apply Permutation_refl.
