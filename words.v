@@ -151,11 +151,31 @@ Corollary additions_spec x:
   forall (l l': list A), Add x l l' <-> In l' (additions x l).
 Proof. intros l l'. rewrite Add_insert_at, in_additions. reflexivity. Qed.
 
+Lemma seq_shift_n len start n:
+  map (Nat.add n) (seq start len) = seq (n + start) len.
+Proof.
+  induction n.
+  - now rewrite map_id.
+  - cbn. now rewrite <- map_map, IHn, seq_shift.
+Qed.
+
+Lemma map_ext_seq {X} (f g: nat -> X) n start d:
+  (forall j, start <= j < start + n -> f (d + j) = g j) ->
+  map f (seq (start + d) n) = map g (seq start n).
+Proof.
+  intro H0. rewrite Nat.add_comm, <- seq_shift_n.
+  rewrite map_map. apply map_ext_in.
+  intros j H1. specialize (H0 j). apply H0.
+  apply in_seq. exact H1.
+Qed.
+
 Lemma additions_cons x a l:
   additions x (a :: l) = (x::a::l)::map (cons a) (additions x l).
 Proof.
   cbn. f_equal. f_equal. rewrite map_map.
-Abort.
+  replace 2 with (1 + 1) by reflexivity.
+  apply map_ext_seq. reflexivity.
+Qed.
 
 Lemma additions_length x l:
   length (additions x l) = S (length l).
