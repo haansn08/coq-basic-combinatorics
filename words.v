@@ -69,7 +69,6 @@ Proof.
     + cbn. lia.
     + cbn [falling_fact]. rewrite IHn by assumption.
       replace (S (S x) - S n) with (S x - n) by lia.
-      set (k := rising_fact n (S x - n)).
       rewrite Nat.sub_add by assumption. reflexivity.
 Qed.
 
@@ -163,10 +162,9 @@ Lemma map_ext_seq {X} (f g: nat -> X) n start d:
   (forall j, start <= j < start + n -> f (d + j) = g j) ->
   map f (seq (start + d) n) = map g (seq start n).
 Proof.
-  intro H0. rewrite Nat.add_comm, <- seq_shift_n.
+  intro H. rewrite Nat.add_comm, <- seq_shift_n.
   rewrite map_map. apply map_ext_in.
-  intros j H1. specialize (H0 j). apply H0.
-  apply in_seq. exact H1.
+  intros j ?%in_seq. apply H. assumption.
 Qed.
 
 Lemma additions_cons x a l:
@@ -179,7 +177,7 @@ Qed.
 
 Lemma additions_length x l:
   length (additions x l) = S (length l).
-Proof. unfold additions. rewrite map_length, seq_length. reflexivity. Qed.
+Proof. unfold additions. now rewrite map_length, seq_length. Qed.
 
 Fixpoint permutations l :=
 match l with
@@ -195,17 +193,21 @@ Proof.
   split; [assumption | now left].
 Qed.
 
-Lemma Permutation_permutations l l':
-  Permutation l l' -> Permutation (permutations l) (permutations l').
+#[export] Instance Permutation_additions:
+  Morphisms.Proper (eq ==> Permutation (A:=A) ==> Permutation (A:=list A)) additions.
 Proof.
-Admitted.
-
-Lemma Permutation_additions x l l':
-  Permutation l l' -> Permutation (additions x l) (additions x l').
-Proof.
-  intro H. induction H.
+  intros _ x -> l l' H. induction H.
   - cbn. apply Permutation_refl.
   - 
+Admitted.
+
+#[export] Instance Permutation_permutations:
+  Morphisms.Proper (Permutation (A:=A) ==> Permutation(A:=list A)) permutations.
+Proof.
+  intros l l' H. induction H.
+  - repeat constructor.
+  - cbn. rewrite IHPermutation. apply Permutation_refl.
+  - cbn.  
 Admitted.
 
 Lemma permutations_spec:
@@ -220,16 +222,12 @@ Proof.
       * apply in_flat_map. exists l.
         split; [apply permutations_refl | now left].
       * apply additions_spec. repeat constructor.
-    + eapply Permutation_in.
-      * apply Permutation_permutations. symmetry. exact H.
-      * assumption.
+    + rewrite H, H0. apply permutations_refl.
   - revert H. revert l'. induction l.
     + intros l' [->|[]]. apply Permutation_refl.
     + intros l' H. cbn in H. apply in_flat_map in H as [x [H0 H1]].
-      specialize (IHl x H0).
-      apply Permutation_Add, additions_spec. eapply Permutation_in.
-      * apply Permutation_additions. symmetry. exact IHl.
-      * assumption.
+      specialize (IHl x H0). rewrite IHl.
+      apply Permutation_Add, additions_spec. assumption.
 Qed.
 
 Theorem permutations_fact l:
