@@ -64,3 +64,23 @@ Proof.
   induction d; [ reflexivity | ].
   cbn. now rewrite map_length, prod_length, IHd.
 Qed.
+
+(* ** sequences without repetitions *)
+Section seq_no_rep.
+Variable X : Type.
+Variable n : nat.
+Definition P : list X -> Prop := fun l => NoDup l /\ length l = n.
+
+#[export] Instance seq_no_rep_enum: enum P.
+Proof.
+  unfold P. induction n as [| n' IH].
+  - exists [[]].
+    + intros l. split.
+      * intros [H0 H1%length_zero_iff_nil]. rewrite H1. now left.
+      * intros H. destruct H as [<- | []].
+        split; constructor.
+    + constructor; [apply in_nil | constructor].
+  -
+Abort.
+
+End seq_no_rep.
