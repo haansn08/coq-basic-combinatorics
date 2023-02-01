@@ -40,12 +40,16 @@ Proof.
   - subst y. constructor. reflexivity.
 Qed.
 
-Lemma binomial_falses:
-  forall n, binomial 0 (repeat false n).
+Lemma binomial_falses_iff w:
+  binomial 0 w <-> w = repeat false (length w).
 Proof.
-  induction n.
-  - constructor.
-  - cbn. constructor. assumption.
+  split; intro H.
+  - eapply count_occ_repeat_excl. destruct y.
+    + intros _. apply binomial_spec. exact H.
+    + intro E. contradiction E. reflexivity.
+  - rewrite H. clear. induction w.
+    + constructor.
+    + cbn. constructor. assumption.
 Qed.
 
 Lemma binomials_falses n w:
@@ -131,5 +135,9 @@ Lemma binomials_correct n k w:
 Proof.
   split.
   - intros H. split.
-    + 
+    + apply binomials_length in H. assumption.
+    + induction n, k.
+      * apply binomials_length, length_zero_iff_nil in H as ->. constructor.
+      * contradiction H.
+      * 
 Abort.
