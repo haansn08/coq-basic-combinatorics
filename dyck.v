@@ -66,5 +66,9 @@ Proof.
            apply Nat.add_le_mono_l. apply IHdyck2.
            rewrite app_length in Hi. lia.
     + apply Nat.eq_le_incl. now apply dyck_count_eq.
-  - give_up.
+  - pose (P i := count_occ bool_dec (firstn i w) false = count_occ bool_dec (firstn i w) true).
+    assert (has_unique_least_element le P) as [i [[Hi i_min] i_uniq]].
+    + apply dec_inh_nat_subset_has_unique_least_element.
+      * unfold P. decide equality.
+      * exists (length w). unfold P. rewrite firstn_all.
 Abort.

@@ -100,14 +100,22 @@ Qed.
 Lemma binomials_length w n k:
   In w (binomials n k) -> length w = n.
 Proof.
-  intro H. destruct k.
-  - apply binomials_falses in H. subst. apply repeat_length.
-  - revert H. revert k w. induction n.
-    + intros k w H. contradiction H.
-    + intros k w H. cbn in H. apply in_app_or in H. destruct H.
-      * apply In_map_cons_elim in H as [l' [H0 H1]].
-        rewrite H0. cbn. f_equal. eapply IHn.
-Abort.
+  revert n k. induction w; intros n k H.
+  - destruct n; [reflexivity|exfalso].
+    cbn in H. destruct k.
+    + apply In_singleton in H. discriminate H.
+    + apply in_app_or in H as [];
+      apply In_map_cons_elim in H as [w' [H0 H1]]; discriminate H0.
+  - induction n.
+    + exfalso. cbn in H. destruct k.
+      * destruct H; [ discriminate H | intuition ].
+      * intuition.
+    + cbn in H. destruct k.
+      * apply In_singleton in H as <-. cbn. f_equal. apply repeat_length.
+      * apply in_app_or in H as []; apply In_map_cons_elim in H as [w' [H0 H1]].
+        -- injection H0 as -> ->. cbn; f_equal. eapply IHw. exact H1.
+        -- injection H0 as -> ->. cbn; f_equal. eapply IHw. exact H1.
+Qed.
 
 Lemma binomials_correct n k w:
   In w (binomials n k) <-> length w = n /\ binomial k w.
