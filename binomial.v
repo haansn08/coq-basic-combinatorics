@@ -104,7 +104,9 @@ Proof.
   - apply binomials_falses in H. subst. apply repeat_length.
   - revert H. revert k w. induction n.
     + intros k w H. contradiction H.
-    +
+    + intros k w H. cbn in H. apply in_app_or in H. destruct H.
+      * apply In_map_cons_elim in H as [l' [H0 H1]].
+        rewrite H0. cbn. f_equal. eapply IHn.
 Abort.
 
 Lemma binomials_correct n k w:

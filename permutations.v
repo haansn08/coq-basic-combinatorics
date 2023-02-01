@@ -181,7 +181,7 @@ Proof. unfold additions. now rewrite map_length, seq_length. Qed.
 
 Fixpoint permutations l :=
 match l with
-| nil => [[]]
+| nil => [ nil ]
 | x::l' => flat_map (additions x) (permutations l')
 end.
 
@@ -199,7 +199,7 @@ Proof.
   intros _ x -> l l' H. induction H.
   - cbn. apply Permutation_refl.
   - 
-Admitted.
+Abort.
 
 #[export] Instance Permutation_permutations:
   Morphisms.Proper (Permutation (A:=A) ==> Permutation(A:=list A)) permutations.
@@ -207,7 +207,7 @@ Proof.
   intros l l' H. induction H.
   - repeat constructor.
   - cbn. rewrite IHPermutation. apply Permutation_refl.
-  - cbn.  
+  - cbn.
 Admitted.
 
 Lemma permutations_spec:
