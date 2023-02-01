@@ -97,6 +97,14 @@ Proof.
   - cbn. apply in_or_app. right. apply In_map_cons. exact H.
 Qed.
 
+Lemma binomials_O k w:
+  In w (binomials 0 k) -> [] = w.
+Proof.
+  intro H. cbn in H. destruct k.
+  - apply In_singleton in H. assumption.
+  - exfalso. intuition.
+Qed.
+
 Lemma binomials_length w n k:
   In w (binomials n k) -> length w = n.
 Proof.
@@ -106,15 +114,16 @@ Proof.
     + apply In_singleton in H. discriminate H.
     + apply in_app_or in H as [];
       apply In_map_cons_elim in H as [w' [H0 H1]]; discriminate H0.
-  - induction n.
-    + exfalso. cbn in H. destruct k.
-      * destruct H; [ discriminate H | intuition ].
-      * intuition.
-    + cbn in H. destruct k.
-      * apply In_singleton in H as <-. cbn. f_equal. apply repeat_length.
-      * apply in_app_or in H as []; apply In_map_cons_elim in H as [w' [H0 H1]].
-        -- injection H0 as -> ->. cbn; f_equal. eapply IHw. exact H1.
-        -- injection H0 as -> ->. cbn; f_equal. eapply IHw. exact H1.
+  - destruct n.
+    + apply binomials_O in H. discriminate H.
+    + destruct a, k.
+      * exfalso. destruct H; [discriminate H|contradiction].
+      * apply -> binomials_cons_true in H. cbn; f_equal.
+        eapply IHw. exact H.
+      * cbn in H. destruct H; [injection H as <-|contradiction].
+        cbn; f_equal. apply repeat_length.
+      * apply -> binomials_cons_false in H. cbn; f_equal.
+        eapply IHw. exact H.
 Qed.
 
 Lemma binomials_correct n k w:
