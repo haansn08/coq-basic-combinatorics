@@ -1,4 +1,4 @@
 -R theories/ BasicCombinatorics
 
-theories/binomial.v
-theories/dyck.v
+theories/Binomial.v
+theories/Dyck.v

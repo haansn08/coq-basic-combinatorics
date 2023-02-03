@@ -3,13 +3,13 @@ Import ListNotations.
 
 Definition word := list bool.
 
-Inductive binomial: nat -> word -> Prop :=
-| binomial_nil: binomial 0 []
-| binomial_true: forall k w, binomial k w -> binomial (S k) (true::w)
-| binomial_false: forall k w, binomial k w -> binomial k (false::w).
+Inductive Binomial: nat -> word -> Prop :=
+| Binomial_nil: Binomial 0 []
+| Binomial_true: forall k w, Binomial k w -> Binomial (S k) (true::w)
+| Binomial_false: forall k w, Binomial k w -> Binomial k (false::w).
 
-Lemma binomial_spec:
-  forall k w, binomial k w <-> count_occ bool_dec w true = k.
+Lemma Binomial_spec:
+  forall k w, Binomial k w <-> count_occ bool_dec w true = k.
 Proof.
   intros k w. split.
   - intros H. induction H.
@@ -30,8 +30,6 @@ match n, k with
              ++ map (cons false) (binomials n' k) 
 end.
 
-Compute binomials 4 2.
-
 Lemma In_singleton [A : Type] (x y : A):
   In x [y] <-> y = x.
 Proof.
@@ -40,22 +38,22 @@ Proof.
   - subst y. constructor. reflexivity.
 Qed.
 
-Lemma binomial_falses_iff w:
-  binomial 0 w <-> w = repeat false (length w).
+Lemma Binomial_falses_iff w:
+  Binomial 0 w <-> w = repeat false (length w).
 Proof.
   split; intro H.
   - eapply count_occ_repeat_excl. destruct y.
-    + intros _. apply binomial_spec. exact H.
+    + intros _. apply Binomial_spec. exact H.
     + intro E. contradiction E. reflexivity.
   - rewrite H. clear. induction w.
     + constructor.
     + cbn. constructor. assumption.
 Qed.
 
-Corollary binomial_falses n:
-  binomial 0 (repeat false n).
+Corollary Binomial_falses n:
+  Binomial 0 (repeat false n).
 Proof.
-  apply binomial_falses_iff.
+  apply Binomial_falses_iff.
   rewrite repeat_length. reflexivity.
 Qed.
 
@@ -153,7 +151,7 @@ Proof.
 Qed.
 
 Lemma binomials_correct n k w:
-  In w (binomials n k) <-> length w = n /\ binomial k w.
+  In w (binomials n k) <-> length w = n /\ Binomial k w.
 Proof.
   split.
   - intros H. split.
@@ -161,7 +159,7 @@ Proof.
     + revert H. revert w k. induction n; intros w k H.
       * rewrite (binomials_O_O _ _ H), (binomials_O_nil _ _ H). constructor.
       * cbn in H. destruct k.
-        -- apply In_singleton in H. apply binomial_falses_iff. rewrite <- H.
+        -- apply In_singleton in H. apply Binomial_falses_iff. rewrite <- H.
            cbn. rewrite repeat_length. reflexivity.
         -- apply In_app_map_cons in H as [[w' [-> H2]]|[w' [-> H2]]].
            ++ constructor. apply IHn. exact H2.
