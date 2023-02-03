@@ -87,15 +87,24 @@ Proof.
   + apply Nat.eq_le_incl. now apply Dyck_count_eq.
 Qed.
 
+Lemma length_lt_ind [A: Type]:
+  forall (P: list A -> Prop), P [] ->
+  (forall l, (forall l', length l' < length l -> P l') -> P l) ->
+  forall l, P l.
+Admitted.
+
 Lemma firstn_le_Dyck w:
   #false w = #true w ->
   (forall i : nat, #false (firstn i w) <= #true (firstn i w)) ->
   Dyck w.
 Proof.
+  induction w using length_lt_ind; [constructor |].  
   intros H1 H2. pose (P i := #false (firstn i w) = #true (firstn i w)).
   assert (has_unique_least_element le P) as [i [[Hi i_min] i_uniq]]. {
     apply dec_inh_nat_subset_has_unique_least_element.
     * unfold P. intro n. apply dec_eq_nat.
     * exists (length w). unfold P. rewrite firstn_all. exact H1.
   }
+  destruct (dec_eq_nat i (length w)).
+  - 
 Abort.

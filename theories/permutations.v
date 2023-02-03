@@ -2,6 +2,11 @@ Require Import List Permutation Factorial Arith.
 Require Import Lia Setoid.
 Import ListNotations.
 
+(* see also:
+  - https://github.com/clucas26e4/List_Permutation
+  - https://github.com/math-comp/math-comp/blob/master/mathcomp/ssreflect/seq.v#L4326
+*)
+
 (* TODO: remove when https://github.com/coq/coq/pull/17082 is released *)
 Section flat_map.
 Lemma concat_length A l:
@@ -79,7 +84,6 @@ Proof.
 Qed.
 End factorials.
 
-(* https://github.com/math-comp/math-comp/blob/master/mathcomp/ssreflect/seq.v#L4326 *)
 Section permutations.
 Variable A : Type.
 Implicit Type l : list A.
