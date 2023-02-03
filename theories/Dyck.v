@@ -40,8 +40,11 @@ Proof.
     apply Binomial_app; assumption.
 Qed.
 
+Notation "'#true' w" := (count_occ bool_dec w true) (at level 10).
+Notation "'#false' w" := (count_occ bool_dec w false) (at level 10).
+
 Lemma Dyck_count_eq w:
-  Dyck w -> count_occ bool_dec w false = count_occ bool_dec w true.
+  Dyck w -> #false w = #true w.
 Proof.
   intros D. induction D.
   - reflexivity.
@@ -59,8 +62,7 @@ Proof.
 Qed.
 
 Lemma Dyck_firstn_le w:
-  Dyck w -> forall i, count_occ bool_dec (firstn i w) false
-                      <= count_occ bool_dec (firstn i w) true.
+  Dyck w -> forall i, #false (firstn i w) <= #true (firstn i w).
 Proof.
   intros D i. apply firstn_lt_length. clear i. split.
   + induction D; intros i Hi.
@@ -84,3 +86,16 @@ Proof.
          rewrite app_length in Hi. lia.
   + apply Nat.eq_le_incl. now apply Dyck_count_eq.
 Qed.
+
+Lemma firstn_le_Dyck w:
+  #false w = #true w ->
+  (forall i : nat, #false (firstn i w) <= #true (firstn i w)) ->
+  Dyck w.
+Proof.
+  intros H1 H2. pose (P i := #false (firstn i w) = #true (firstn i w)).
+  assert (has_unique_least_element le P) as [i [[Hi i_min] i_uniq]]. {
+    apply dec_inh_nat_subset_has_unique_least_element.
+    * unfold P. intro n. apply dec_eq_nat.
+    * exists (length w). unfold P. rewrite firstn_all. exact H1.
+  }
+Abort.
