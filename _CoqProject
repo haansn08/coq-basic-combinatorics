@@ -1,0 +1,4 @@
+-R theories/ BasicCombinatorics
+
+theories/binomial.v
+theories/dyck.v
