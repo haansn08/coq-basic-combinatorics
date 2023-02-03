@@ -52,6 +52,13 @@ Proof.
     + cbn. constructor. assumption.
 Qed.
 
+Corollary binomial_falses n:
+  binomial 0 (repeat false n).
+Proof.
+  apply binomial_falses_iff.
+  rewrite repeat_length. reflexivity.
+Qed.
+
 Lemma binomials_falses n w:
   In w (binomials n 0) <-> repeat false n = w.
 Proof.
@@ -73,14 +80,22 @@ Lemma In_map_cons [A: Type] (a : A) l ls:
   In l ls -> In (a::l) (map (cons a) ls).
 Proof. intro H. apply in_map_iff. exists l. tauto. Qed.
 
+Lemma In_app_map_cons w l1 l2:
+  In w (map (cons true) l1 ++ map (cons false) l2) ->
+  (exists w', w=true::w' /\ In w' l1) \/ (exists w', w=false::w' /\ In w' l2).
+Proof.
+  intros H%in_app_or. destruct H as [H1 | H2].
+  - left. apply In_map_cons_elim in H1. exact H1.
+  - right. apply In_map_cons_elim in H2. exact H2.
+Qed.
+
 Lemma binomials_cons_true n k w:
   In (true::w) (binomials (S n) (S k)) <-> In w (binomials n k).
 Proof.
   split; intro H.
-  - cbn in H. apply in_app_or in H as [];
-    apply In_map_cons_elim in H as [w' [H0 H1]].
-    + injection H0 as ->. assumption.
-    + discriminate H0.
+  - cbn in H. apply In_app_map_cons in H as [[w' [H1 H2]]|[w' [H1 H2]]].
+    + injection H1 as ->. assumption.
+    + discriminate H1.
   - cbn. apply in_or_app. left.
     apply In_map_cons. assumption.
 Qed.
@@ -94,18 +109,25 @@ Proof.
     + contradiction.
   - apply binomials_falses in H as <-.
     left. reflexivity.
-  - cbn in H. apply in_app_or in H as [];
-    apply In_map_cons_elim in H as [w' [H0 H1]].
-    + discriminate H0.
-    + injection H0 as ->. assumption.
+  - cbn in H. apply In_app_map_cons in H as [[w' [H1 H2]]|[w' [H1 H2]]].
+    + discriminate H1.
+    + injection H1 as ->. assumption.
   - cbn. apply in_or_app. right. apply In_map_cons. exact H.
 Qed.
 
-Lemma binomials_O k w:
-  In w (binomials 0 k) -> [] = w.
+Lemma binomials_O_nil k w:
+  In w (binomials 0 k) -> w = [].
 Proof.
   intro H. cbn in H. destruct k.
-  - apply In_singleton in H. assumption.
+  - now apply In_singleton in H.
+  - exfalso. intuition.
+Qed.
+
+Lemma binomials_O_O k w:
+  In w (binomials 0 k) -> k = 0.
+Proof.
+  intro H. cbn in H. destruct k.
+  - reflexivity.
   - exfalso. intuition.
 Qed.
 
@@ -116,10 +138,10 @@ Proof.
   - destruct n; [reflexivity|exfalso].
     cbn in H. destruct k.
     + apply In_singleton in H. discriminate H.
-    + apply in_app_or in H as [];
-      apply In_map_cons_elim in H as [w' [H0 H1]]; discriminate H0.
+    + apply In_app_map_cons in H as [[w' [H1 H2]]|[w' [H1 H2]]];
+      discriminate H1.
   - destruct n.
-    + apply binomials_O in H. discriminate H.
+    + apply binomials_O_nil in H. discriminate H.
     + destruct a, k.
       * exfalso. destruct H; [discriminate H|contradiction].
       * apply -> binomials_cons_true in H. cbn; f_equal.
@@ -136,8 +158,16 @@ Proof.
   split.
   - intros H. split.
     + apply binomials_length in H. assumption.
-    + induction n, k.
-      * apply binomials_length, length_zero_iff_nil in H as ->. constructor.
-      * contradiction H.
-      * 
-Abort.
+    + revert H. revert w k. induction n; intros w k H.
+      * rewrite (binomials_O_O _ _ H), (binomials_O_nil _ _ H). constructor.
+      * cbn in H. destruct k.
+        -- apply In_singleton in H. apply binomial_falses_iff. rewrite <- H.
+           cbn. rewrite repeat_length. reflexivity.
+        -- apply In_app_map_cons in H as [[w' [-> H2]]|[w' [-> H2]]].
+           ++ constructor. apply IHn. exact H2.
+           ++ constructor. apply IHn. exact H2.
+   - intros [<- B]. induction B.
+     + now left.
+     + cbn [length]. apply binomials_cons_true. assumption.
+     + cbn [length]. apply binomials_cons_false. assumption.
+Qed.
