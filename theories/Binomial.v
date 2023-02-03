@@ -8,6 +8,15 @@ Inductive Binomial: nat -> word -> Prop :=
 | Binomial_true: forall k w, Binomial k w -> Binomial (S k) (true::w)
 | Binomial_false: forall k w, Binomial k w -> Binomial k (false::w).
 
+Lemma Binomial_false_end:
+  forall k w, Binomial k w -> Binomial k (w ++ [false]).
+Proof.
+  intros k w B. induction B.
+  - repeat constructor.
+  - cbn. constructor. assumption.
+  - cbn. constructor. assumption.
+Qed.
+
 Lemma Binomial_spec:
   forall k w, Binomial k w <-> count_occ bool_dec w true = k.
 Proof.
@@ -19,6 +28,14 @@ Proof.
   - intros <-. induction w.
     + constructor.
     + destruct a; cbn; constructor; assumption.
+Qed.
+
+Lemma Binomial_app:
+  forall k1 w1, Binomial k1 w1 -> forall k2 w2, Binomial k2 w2 ->
+  Binomial (k1 + k2) (w1 ++ w2).
+Proof.
+  intros k1 w1 B1%Binomial_spec k2 w2 B2%Binomial_spec.
+  apply Binomial_spec. rewrite count_occ_app. now rewrite B1, B2.
 Qed.
 
 Fixpoint binomials n k :=

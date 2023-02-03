@@ -22,6 +22,24 @@ Proof.
   - rewrite app_length. apply Nat.Even_Even_add; assumption.
 Qed.
 
+Lemma div2_add_distr n m:
+  Nat.Even n -> Nat.Even m -> Nat.div2 (n + m) = Nat.div2 n + Nat.div2 m.
+Proof.
+  intros [p ->] [q ->]. rewrite <- Nat.mul_add_distr_l.
+  rewrite !Nat.div2_double. reflexivity.
+Qed.
+
+Lemma Dyck_Binomial w:
+  Dyck w -> Binomial (Nat.div2 (length w)) w.
+Proof.
+  intro D. induction D.
+  - constructor.
+  - rewrite length_cons_ends. cbn. constructor.
+    apply Binomial_false_end. assumption.
+  - rewrite app_length. rewrite div2_add_distr by now apply Dyck_even.
+    apply Binomial_app; assumption.
+Qed.
+
 Lemma Dyck_count_eq w:
   Dyck w -> count_occ bool_dec w false = count_occ bool_dec w true.
 Proof.
