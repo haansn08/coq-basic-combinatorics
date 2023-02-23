@@ -1,4 +1,4 @@
-Require Import List Bool Arith.
+Require Import List Bool Arith Permutation.
 Require Import Lia.
 Import ListNotations.
 
@@ -83,9 +83,17 @@ Qed.
 
 Require Import Wellfounded.
 
+Lemma count_occ_last {A: Type} (eq_dec: forall x y : A, {x = y} + {x <> y})
+  (x a b: A) (l: list A):
+  count_occ eq_dec (a::l++[b]) x = count_occ eq_dec (a::b::l) x.
+Proof.
+  apply Permutation_count_occ. constructor.
+  symmetry. apply Permutation_cons_append.
+Qed.
+
 Lemma firstn_le_Dyck w:
   #false w = #true w ->
-  (forall i : nat, #false (firstn i w) <= #true (firstn i w)) ->
+  (forall i : nat, i < length w -> #false (firstn i w) <= #true (firstn i w)) ->
   Dyck w.
 Proof.
   induction w as [w IH]
@@ -98,6 +106,17 @@ Proof.
   }
   assert (Even w) as w_Even by now apply count_eq_even.
   destruct (dec_eq_nat i (length w)).
-  - destruct w_Even; [constructor |]. destruct a, b.
-    + exfalso. 
+  - destruct w_Even; [constructor|].
+    rewrite !count_occ_last in H1. destruct a.
+    + destruct b; cbn in H1.
+      * exfalso. revert H1 H2. clear. intros H1 H2.
+        specialize (H2 (1 + length w + 0)). cbn in H2.
+        rewrite firstn_app_2, firstn_O, app_nil_r in H2.
+        rewrite H1 in H2. eapply Nat.nle_succ_diag_l, H2.
+        rewrite app_length. cbn. lia.
+      * constructor. apply IH.
+        -- cbn. rewrite app_length. lia.
+        -- injection H1. easy.
+        -- intros j Hj. specialize (H2 (S j)). cbn in H2.
+           
 Abort.
