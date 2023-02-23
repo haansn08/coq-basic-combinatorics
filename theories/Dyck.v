@@ -2,24 +2,29 @@ Require Import List Bool Arith.
 Require Import Lia.
 Import ListNotations.
 
-From BasicCombinatorics Require Import Binomial.
+From BasicCombinatorics Require Import Even Binomial.
 
 Inductive Dyck: word -> Prop :=
 | Dyck_nil: Dyck nil
 | Dyck_shift: forall w, Dyck w -> Dyck (true::w++[false])
 | Dyck_app: forall w1, Dyck w1 -> forall w2, Dyck w2 -> Dyck (w1 ++ w2).
 
-Lemma length_cons_ends [A: Type] (x y: A) (l: list A):
-  length (x::l++[y]) = S (S (length l)).
-Proof. cbn. rewrite last_length. reflexivity. Qed.
-
-Lemma Dyck_even w:
-  Dyck w -> Nat.Even (length w).
+Lemma Dyck_count_eq w:
+  Dyck w -> #false w = #true w.
 Proof.
-  intros D. induction D. (* good example for not inducting on w *)
-  - exists 0. reflexivity.
-  - rewrite length_cons_ends. apply Nat.Even_succ_succ. assumption.
-  - rewrite app_length. apply Nat.Even_Even_add; assumption.
+  intros D. induction D.
+  - reflexivity.
+  - cbn. rewrite !count_occ_app. cbn. lia.
+  - rewrite !count_occ_app. congruence.
+Qed.
+
+Corollary Dyck_even w:
+  Dyck w -> Even w.
+Proof.
+  intros D. induction D.
+  - constructor.
+  - constructor. assumption.
+  - apply Even_app; assumption.
 Qed.
 
 Lemma div2_add_distr n m:
@@ -36,20 +41,9 @@ Proof.
   - constructor.
   - rewrite length_cons_ends. cbn. constructor.
     apply Binomial_false_end. assumption.
-  - rewrite app_length. rewrite div2_add_distr by now apply Dyck_even.
+  - rewrite app_length.
+    rewrite div2_add_distr by (apply Even_length_Even, Dyck_even; assumption).
     apply Binomial_app; assumption.
-Qed.
-
-Notation "'#true' w" := (count_occ bool_dec w true) (at level 10).
-Notation "'#false' w" := (count_occ bool_dec w false) (at level 10).
-
-Lemma Dyck_count_eq w:
-  Dyck w -> #false w = #true w.
-Proof.
-  intros D. induction D.
-  - reflexivity.
-  - cbn. rewrite !count_occ_app. cbn. lia.
-  - rewrite !count_occ_app. congruence.
 Qed.
 
 Lemma firstn_lt_length [A:Type] (P: list A -> Prop) l:
@@ -87,22 +81,6 @@ Proof.
   + apply Nat.eq_le_incl. now apply Dyck_count_eq.
 Qed.
 
-Lemma Dyck_nonempty w:
-  w <> [] -> Dyck w -> exists w', w = true::w'++[false] /\ Dyck w'.
-Proof.
-  intros H D. induction D.
-  - contradiction H. reflexivity.
-  - exists w. easy.
-  - destruct w1, w2.
-    + contradiction H. reflexivity.
-    + exists w2. cbn.
-Abort.
-
-Lemma count_eq_even w:
-  #false w = #true w -> Nat.Even (length w).
-Proof.
-Admitted.
-
 Require Import Wellfounded.
 
 Lemma firstn_le_Dyck w:
@@ -118,6 +96,8 @@ Proof.
     * unfold P. intro n. apply dec_eq_nat.
     * exists (length w). unfold P. rewrite firstn_all. exact H1.
   }
+  assert (Even w) as w_Even by now apply count_eq_even.
   destruct (dec_eq_nat i (length w)).
-  - apply count_eq_even in H1 as [n Hn].
+  - destruct w_Even; [constructor |]. destruct a, b.
+    + exfalso. 
 Abort.
