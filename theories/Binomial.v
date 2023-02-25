@@ -157,17 +157,16 @@ Proof.
       discriminate H1.
   - destruct n.
     + apply binomials_O_nil in H. discriminate H.
-    + destruct a, k.
+    + destruct a, k; cbn; f_equal.
       * exfalso. destruct H; [discriminate H|contradiction].
-      * apply -> binomials_cons_true in H. cbn; f_equal.
+      * apply -> binomials_cons_true in H.
         eapply IHw. exact H.
       * cbn in H. destruct H; [injection H as <-|contradiction].
-        cbn; f_equal. apply repeat_length.
-      * apply -> binomials_cons_false in H. cbn; f_equal.
-        eapply IHw. exact H.
+        apply repeat_length.
+      * apply -> binomials_cons_false in H. eapply IHw. exact H.
 Qed.
 
-Lemma binomials_correct n k w:
+Theorem binomials_correct n k w:
   In w (binomials n k) <-> length w = n /\ Binomial k w.
 Proof.
   split.

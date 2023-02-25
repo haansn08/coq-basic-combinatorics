@@ -23,10 +23,14 @@ Proof.
 Qed.
 
 Lemma div2_add_distr n m:
-  Nat.Even n -> Nat.Even m -> Nat.div2 (n + m) = Nat.div2 n + Nat.div2 m.
+  Nat.Even m -> Nat.div2 (n + m) = Nat.div2 n + Nat.div2 m.
 Proof.
-  intros [p ->] [q ->]. rewrite <- Nat.mul_add_distr_l.
-  rewrite !Nat.div2_double. reflexivity.
+  intros [q ->]. destruct (Nat.Even_or_Odd n) as [[p ->]|[p ->]].
+  - rewrite <- Nat.mul_add_distr_l.
+    rewrite !Nat.div2_double. reflexivity.
+  - rewrite Nat.add_1_r, Nat.add_succ_l, Nat.div2_succ_double.
+    rewrite <- Nat.mul_add_distr_l, Nat.div2_succ_double, Nat.div2_double.
+    reflexivity.
 Qed.
 
 Lemma Dyck_Binomial w:
@@ -88,19 +92,24 @@ Proof.
 Qed.
 
 Lemma Dyck_nonempty w:
-  w <> [] -> Dyck w -> exists w', w = true::w'++[false] /\ Dyck w'.
+  w <> [] -> Dyck w -> exists w', w = true::w'++[false].
+Proof. Abort.
+
+Lemma count_true_false_length w:
+  #false w + #true w = length w.
 Proof.
-  intros H D. induction D.
-  - contradiction H. reflexivity.
-  - exists w. easy.
-  - destruct w1, w2.
-    + contradiction H. reflexivity.
-    + exists w2. cbn.
-Abort.
+  induction w.
+  - reflexivity.
+  - destruct a.
+    * cbn. rewrite Nat.add_succ_r. f_equal. assumption.
+    * cbn. f_equal. assumption.
+Qed.
 
 Lemma count_eq_even w:
   #false w = #true w -> Nat.Even (length w).
 Proof.
+intro H.
+
 Admitted.
 
 Require Import Wellfounded.
