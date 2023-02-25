@@ -28,12 +28,11 @@ Proof.
 Qed.
 
 Lemma div2_add_distr n m:
-  Nat.Even m -> Nat.div2 (n + m) = Nat.div2 n + Nat.div2 m.
+  Nat.Even n -> Nat.div2 (n + m) = Nat.div2 n + Nat.div2 m.
 Proof.
-  intros [q ->]. destruct (Nat.Even_or_Odd n) as [[p ->]|[p ->]].
-  - rewrite <- Nat.mul_add_distr_l.
-    rewrite !Nat.div2_double. reflexivity.
-  - rewrite Nat.add_1_r, Nat.add_succ_l, Nat.div2_succ_double.
+  intros [q ->]. destruct (Nat.Even_or_Odd m) as [[p ->]|[p ->]].
+  - rewrite <- Nat.mul_add_distr_l, !Nat.div2_double. reflexivity.
+  - rewrite Nat.add_1_r, Nat.add_succ_r, Nat.div2_succ_double.
     rewrite <- Nat.mul_add_distr_l, Nat.div2_succ_double, Nat.div2_double.
     reflexivity.
 Qed.
@@ -95,7 +94,14 @@ Proof.
   symmetry. apply Permutation_cons_append.
 Qed.
 
-Lemma firstn_le_Dyck w:
+Lemma firstn_le_app {A: Type} n (l1 l2: list A):
+  n <= length l1 -> firstn n (l1 ++ l2) = firstn n l1.
+Proof.
+  intros H%Nat.sub_0_le. rewrite firstn_app.
+  rewrite H, firstn_O, app_nil_r. reflexivity.
+Qed.
+
+Theorem firstn_le_Dyck w:
   #false w = #true w ->
   (forall i : nat, i < length w -> #false (firstn i w) <= #true (firstn i w)) ->
   Dyck w.
@@ -121,6 +127,6 @@ Proof.
       * constructor. apply IH.
         -- cbn. rewrite app_length. lia.
         -- injection H1. easy.
-        -- intros j Hj. specialize (H2 (S j)). cbn in H2.
-
+        -- intros j Hj. specialize (H2 (S j)).
+           cbn in H2. rewrite firstn_le_app in H2.
 Abort.
