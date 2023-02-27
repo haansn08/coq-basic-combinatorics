@@ -94,7 +94,9 @@ Proof.
 Qed.
 
 Theorem level_firstn_dyck w:
-  level w = 0 -> (forall n, 0 <= level (firstn n w)) -> Dyck w.
+  level w = 0 ->
+  (forall n, (n < length w)%nat -> 0 <= level (firstn n w)) ->
+  Dyck w.
 Proof.
   (* strong induction over w *)
   induction w as [w IH]
@@ -113,7 +115,9 @@ Proof.
     + exact Dyck_nil.
     + assert (a = true) as ->. {
         destruct a; [reflexivity|exfalso].
-        specialize (H1 1%nat). cbn in H1. lia.
+        specialize (H1 1%nat). cut (0 <= -1).
+        - lia.
+        - apply H1. rewrite length_cons_ends. auto with arith.
       }
       assert (b = false) as ->. {
         destruct b; [exfalso|reflexivity]. clear - H0 H1.
@@ -121,13 +125,16 @@ Proof.
         replace (level [true; true]) with 2 in H0 by reflexivity.
 
         specialize (H1 (1 + length w' + 0)%nat). cbn in H1.
-        rewrite firstn_app_2, firstn_O, app_nil_r in H1. lia.
+        rewrite firstn_app_2, firstn_O, app_nil_r in H1.
+        cut (0 <= level w' + 1).
+        - lia.
+        - apply H1. rewrite app_length. auto with arith.
       }
       rewrite level_ends in H0.
-      apply Dyck_shift. apply IH.
+      apply Dyck_shift. apply IH; clear IH.
       * rewrite length_cons_ends. repeat constructor.
       * exact H0.
-      * 
+      * intros n' H3. subst n.
 Abort.
 End level.
 
