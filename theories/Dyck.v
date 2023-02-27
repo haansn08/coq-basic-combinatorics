@@ -1,4 +1,4 @@
-Require Import List Bool Arith Permutation.
+Require Import List Bool ZArith Permutation.
 Require Import Lia.
 Import ListNotations.
 
@@ -49,40 +49,62 @@ Proof.
     apply Binomial_app; assumption.
 Qed.
 
-Lemma firstn_lt_length [A:Type] (P: list A -> Prop) l:
-  (forall n, n < length l -> P (firstn n l)) /\ P l ->
-  (forall n, P (firstn n l)).
+Section level.
+
+Open Scope Z.
+
+Fixpoint level w: Z :=
+match w with
+| nil => 0
+| true::w => (level w) + 1
+| false::w => (level w) - 1
+end.
+
+Lemma level_app w1 w2:
+  level (w1 ++ w2) = (level w1) + (level w2).
 Proof.
-  intros H n. destruct (dec_lt n (length l)) as [Hn|Hn].
-  + intuition.
-  + apply not_lt in Hn. rewrite firstn_all2; intuition.
+  induction w1.
+  - reflexivity.
+  - rewrite <- app_comm_cons. destruct a; cbn; lia.
 Qed.
 
-Lemma Dyck_firstn_le w:
-  Dyck w -> forall i, #false (firstn i w) <= #true (firstn i w).
+Lemma level_count w:
+   level w = Z.of_nat (#true w) - Z.of_nat (#false w).
 Proof.
-  intros D i. apply firstn_lt_length. clear i. split.
-  + induction D; intros i Hi.
-    * apply Nat.nlt_0_r in Hi. contradiction.
-    * rewrite length_cons_ends in Hi. destruct i.
-      -- rewrite firstn_O. reflexivity.
-      -- rewrite firstn_cons. rewrite <- firstn_removelast.
-          ++ rewrite removelast_last. cbn. constructor.
-             apply firstn_lt_length. split.
-             ** intros i' Hi'. apply IHD. assumption.
-             ** apply Nat.eq_le_incl. now apply Dyck_count_eq.
-          ++ rewrite last_length. now apply Nat.succ_lt_mono.
-    * rewrite firstn_app, !count_occ_app.
-      destruct (lt_dec i (length w1)) as [H1|H2%not_lt].
-      -- replace (i - length w1) with 0 by lia. rewrite firstn_O, !Nat.add_0_r.
-         apply firstn_lt_length. split.
-         ++ apply IHD1.
-         ++ apply Nat.eq_le_incl. now apply Dyck_count_eq.
-      -- rewrite firstn_all2 by lia. rewrite Dyck_count_eq by assumption.
-         apply Nat.add_le_mono_l. apply IHD2.
-         rewrite app_length in Hi. lia.
-  + apply Nat.eq_le_incl. now apply Dyck_count_eq.
+  induction w.
+  - reflexivity.
+  - destruct a; cbn -[Z.of_nat]; lia.
 Qed.
+
+Corollary level_count_le_iff w:
+  0 <= level w <-> (#false w <= #true w)%nat.
+Proof. rewrite level_count. lia. Qed.
+
+Lemma level_firstn_false:
+  forall n, -1 <= level (firstn n [false]).
+Proof.
+  intro n. destruct n.
+  - cbn. lia.
+  - cbn. rewrite firstn_nil. reflexivity.
+Qed.
+
+Lemma dyck_level_firstn w:
+  Dyck w -> forall n, 0 <= level (firstn n w).
+Proof.
+  intros D. induction D; intro n.
+  - rewrite firstn_nil. reflexivity.
+  - destruct n; [reflexivity|].
+    cbn. rewrite firstn_app, level_app.
+    pose (level_firstn_false (n - length w)). specialize (IHD n). lia.
+  - rewrite firstn_app, level_app.
+    specialize (IHD1 n). specialize (IHD2 (n - length w1)%nat). lia.
+Qed.
+
+End level.
+
+Corollary Dyck_firstn_le w:
+  Dyck w -> forall n, #false (firstn n w) <= #true (firstn n w).
+Proof. intros. apply level_count_le_iff, dyck_level_firstn. assumption. Qed.
 
 Require Import Wellfounded.
 
@@ -129,4 +151,5 @@ Proof.
         -- injection H1. easy.
         -- intros j Hj. specialize (H2 (S j)).
            cbn in H2. rewrite firstn_le_app in H2.
+           specialize (i_min (S j)). specialize (i_uniq (S j)).
 Abort.
