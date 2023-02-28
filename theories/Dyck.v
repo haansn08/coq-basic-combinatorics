@@ -93,6 +93,28 @@ Proof.
   rewrite level_count in H. lia.
 Qed.
 
+Lemma list_nil_decidable {A: Type} (l: list A):
+  Decidable.decidable (l = nil).
+Proof.
+  destruct l.
+  - left. reflexivity.
+  - right. discriminate.
+Qed.
+
+Lemma firstn_add_skipn {A: Type} (l: list A) (n m : nat):
+  firstn (n+m)%nat l = firstn n l ++ (firstn m (skipn n l)).
+Proof. (* can be done much shorter possibly *)
+  destruct (Nat.le_decidable n (length l)) as [H|H].
+  - rewrite <- (firstn_skipn n l), firstn_app at 1.
+    rewrite firstn_length. rewrite min_l by assumption.
+    replace (n + m - n)%nat with m by auto with arith.
+    rewrite firstn_firstn. rewrite min_r by apply Nat.le_add_r.
+    reflexivity.
+  - apply Nat.nle_gt, Nat.lt_le_incl in H.
+    rewrite !firstn_all2, skipn_all2 by lia.
+    rewrite firstn_nil, app_nil_r. reflexivity.
+Qed.
+
 Theorem level_firstn_dyck w:
   level w = 0 ->
   (forall n, (n < length w)%nat -> 0 <= level (firstn n w)) ->
@@ -102,14 +124,36 @@ Proof.
   induction w as [w IH]
   using (well_founded_induction ((wf_inverse_image _ _ _ (@length _)) lt_wf)).
   (* consider first n where (firstn n w) returns to ground *)
-  intros H0 H1. pose (P n := level (firstn n w) = 0).
-  assert (has_unique_least_element le P) as [n [[Hn n_min] n_uniq]]. {
-    unfold P. apply dec_inh_nat_subset_has_unique_least_element.
-    * intro n. apply Z.eq_decidable.
-    * exists (length w). rewrite firstn_all. assumption.
+  intros H0 H1.
+  destruct (list_nil_decidable w) as [->|Hnil]; [constructor|].
+  pose (P n := (0 < n)%nat /\ level (firstn n w) = 0).
+  assert (P (length w)) as Pw. {
+    unfold P. split.
+    + apply Nat.neq_0_lt_0. intro H.
+      apply Hnil,length_zero_iff_nil. assumption.
+    + rewrite firstn_all. assumption.
   }
+  assert (has_unique_least_element le P) as [n [[Hn n_min] n_uniq]]. {
+    apply dec_inh_nat_subset_has_unique_least_element.
+    - intro n. apply Decidable.dec_and.
+      + apply Nat.lt_decidable.
+      + apply Z.eq_decidable.
+    - exists (length w). exact Pw.
+  }
+  unfold P in Hn. destruct Hn as [Hn0 Hn].
   (* is it the very end? *)
-  destruct (dec_eq_nat n (length w)).
+  destruct (lt_eq_lt_dec n (length w)) as [[H|H]|H].
+  - rewrite <- (firstn_skipn n). apply Dyck_app.
+    + apply IH; clear IH.
+      * rewrite firstn_length_le; auto with arith.
+      * assumption.
+      * intros k Hk. rewrite firstn_firstn. apply H1. lia.
+    + apply IH; clear IH.
+      * rewrite skipn_length. lia.
+      * rewrite <- (firstn_skipn n w), level_app, Hn in H0. assumption.
+      * intros k Hk. specialize (H1 (n + k)%nat).
+        rewrite firstn_add_skipn, level_app, Hn in H1. apply H1.
+        rewrite skipn_length in Hk. lia.
   - (*yes: w is of the form Dyck_nil or Dyck_shift *)
     subst n.
     apply level_zero_even in H0 as HEven. destruct HEven as [|w' H2 a b].
@@ -139,7 +183,7 @@ Proof.
         destruct (Z.le_decidable 0 (level (firstn k w'))); [assumption|exfalso].
         (* we went to the bottom at k, in contradiction to minimality n *)
         assert (P (S k)). {
-          unfold P. apply Z.le_antisymm.
+          unfold P. split; [apply Nat.lt_0_succ|]. apply Z.le_antisymm.
           - clear -H H3. cbn. rewrite firstn_app.
             replace (k - length w')%nat with 0%nat by lia.
             rewrite firstn_O, app_nil_r. lia.
@@ -147,7 +191,8 @@ Proof.
         }
         specialize (n_min (S k) H4). clear -H n_min.
         rewrite length_cons_ends in n_min. lia.
-Abort.
+  - exfalso. specialize (n_min (length w) Pw). lia.
+Qed.
 End level.
 
 Corollary Dyck_firstn_le w:
