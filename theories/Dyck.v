@@ -103,7 +103,7 @@ Proof.
   using (well_founded_induction ((wf_inverse_image _ _ _ (@length _)) lt_wf)).
   (* consider first n where (firstn n w) returns to ground *)
   intros H0 H1. pose (P n := level (firstn n w) = 0).
-  assert (has_unique_least_element le P) as [n [[Hn n_min] i_uniq]]. {
+  assert (has_unique_least_element le P) as [n [[Hn n_min] n_uniq]]. {
     unfold P. apply dec_inh_nat_subset_has_unique_least_element.
     * intro n. apply Z.eq_decidable.
     * exists (length w). rewrite firstn_all. assumption.
@@ -111,6 +111,7 @@ Proof.
   (* is it the very end? *)
   destruct (dec_eq_nat n (length w)).
   - (*yes: w is of the form Dyck_nil or Dyck_shift *)
+    subst n.
     apply level_zero_even in H0 as HEven. destruct HEven as [|w' H2 a b].
     + exact Dyck_nil.
     + assert (a = true) as ->. {
@@ -134,7 +135,18 @@ Proof.
       apply Dyck_shift. apply IH; clear IH.
       * rewrite length_cons_ends. repeat constructor.
       * exact H0.
-      * intros n' H3. subst n.
+      * intros k H.
+        destruct (Z.le_decidable 0 (level (firstn k w'))); [assumption|exfalso].
+        (* we went to the bottom at k, in contradiction to minimality n *)
+        assert (P (S k)). {
+          unfold P. apply Z.le_antisymm.
+          - clear -H H3. cbn. rewrite firstn_app.
+            replace (k - length w')%nat with 0%nat by lia.
+            rewrite firstn_O, app_nil_r. lia.
+          - apply H1. clear -H. rewrite length_cons_ends. lia.
+        }
+        specialize (n_min (S k) H4). clear -H n_min.
+        rewrite length_cons_ends in n_min. lia.
 Abort.
 End level.
 
