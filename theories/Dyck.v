@@ -57,6 +57,10 @@ Corollary level_count_le_iff w:
   0 <= level w <-> (#false w <= #true w)%nat.
 Proof. rewrite level_count. lia. Qed.
 
+Corollary level_count_eq_iff w:
+  level w = 0 <-> (#false w = #true w)%nat.
+Proof. rewrite level_count. lia. Qed.
+
 Lemma level_firstn_false:
   forall n, -1 <= level (firstn n [false]).
 Proof.
@@ -65,7 +69,7 @@ Proof.
   - cbn. rewrite firstn_nil. reflexivity.
 Qed.
 
-Theorem dyck_level_firstn w:
+Lemma dyck_level_firstn w:
   Dyck w -> forall n, 0 <= level (firstn n w).
 Proof.
   intros D. induction D; intro n.
@@ -115,7 +119,7 @@ Proof. (* can be done much shorter possibly *)
     rewrite firstn_nil, app_nil_r. reflexivity.
 Qed.
 
-Theorem level_firstn_dyck w:
+Lemma level_firstn_dyck w:
   level w = 0 ->
   (forall n, (n < length w)%nat -> 0 <= level (firstn n w)) ->
   Dyck w.
@@ -140,7 +144,7 @@ Proof.
       + apply Z.eq_decidable.
     - exists (length w). exact Pw.
   }
-  unfold P in Hn. destruct Hn as [Hn0 Hn].
+  clear n_uniq. unfold P in Hn. destruct Hn as [Hn0 Hn].
   (* is it the very end? *)
   destruct (lt_eq_lt_dec n (length w)) as [[H|H]|H].
   - rewrite <- (firstn_skipn n). apply Dyck_app.
@@ -191,10 +195,20 @@ Proof.
         }
         specialize (n_min (S k) H4). clear -H n_min.
         rewrite length_cons_ends in n_min. lia.
-  - exfalso. specialize (n_min (length w) Pw). lia.
+  - exfalso. clear -n_min H Pw. specialize (n_min (length w) Pw). lia.
 Qed.
 End level.
 
-Corollary Dyck_firstn_le w:
-  Dyck w -> forall n, #false (firstn n w) <= #true (firstn n w).
-Proof. intros. apply level_count_le_iff, dyck_level_firstn. assumption. Qed.
+Theorem dyck_firstn_iff w:
+  Dyck w <->
+  (#false w = #true w) /\
+  forall n, n < length w -> #false (firstn n w) <= #true (firstn n w).
+Proof.
+  split; intro H.
+  - split.
+    + apply level_count_eq_iff, dyck_level_zero. assumption.
+    + intros n Hn. apply level_count_le_iff, dyck_level_firstn. assumption.
+  - destruct H as [H1 H2]. apply level_firstn_dyck.
+    + apply level_count_eq_iff. assumption.
+    + intros n Hn. apply level_count_le_iff, H2, Hn.
+Qed.
