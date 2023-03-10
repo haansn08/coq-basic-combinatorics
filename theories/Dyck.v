@@ -236,16 +236,37 @@ Qed.
 
 Require Import FunInd Recdef.
 
-Fixpoint dycks (n: nat) {struct n}: list word :=
+Fixpoint dycks_aux fuel (n: nat) {struct fuel}: list word :=
+match fuel with
+| 0 => [ nil ]
+| S fuel =>
 match n with
 | 0 => [ nil ]
 | S n =>
   flat_map
   (fun k =>
-    map (fun ww => true::(fst ww)++false::(snd ww))
-    (combine (dycks k) (dycks (n-k))))
+    map (fun '(v,w) => (true::v++[false])++w)
+    (list_prod (dycks_aux fuel k) (dycks_aux fuel (n-k))))
   (seq 0 (S n))
+end
 end.
+
+Definition dycks n := dycks_aux n n.
+
+Lemma dycks_correct n:
+  forall w, In w (dycks n) -> Dyck w.
+Proof.
+  induction n as [n IH] using (well_founded_induction lt_wf).
+  intros w H. destruct n.
+  - apply In_singleton in H. subst w. constructor.
+  - cbn -[flat_map seq app] in H.
+    apply in_flat_map in H as [k [Hk%in_seq H]].
+    apply in_map_iff in H as [[v' w'] [<- H%in_prod_iff]]. destruct H.
+    constructor; [constructor|].
+    + apply (IH k).
+      * destruct Hk. assumption.
+      * 
+Abort.
 
 Lemma dyck_factorize w:
   w <> nil -> Dyck w ->
