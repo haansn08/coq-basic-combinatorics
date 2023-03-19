@@ -35,6 +35,14 @@ Proof.
 Qed.
 End flat_map.
 
+Lemma In_singleton [A : Type] (x y : A):
+  In x [y] <-> y = x.
+Proof.
+  split; intro H.
+  - destruct H; [assumption | contradiction H].
+  - subst y. constructor. reflexivity.
+Qed.
+
 Section factorials.
 Fixpoint falling_fact n x :=
 match n, x with
@@ -197,41 +205,24 @@ Proof.
   split; [assumption | now left].
 Qed.
 
-#[export] Instance Permutation_additions:
-  Morphisms.Proper (eq ==> Permutation (A:=A) ==> Permutation (A:=list A)) additions.
+Lemma Add_Permutation a l l':
+  Permutation (a :: l) l' -> Add a l l'.
 Proof.
-  intros _ x -> l l' H. induction H.
-  - cbn. apply Permutation_refl.
-  - 
-Abort.
-
-#[export] Instance Permutation_permutations:
-  Morphisms.Proper (Permutation (A:=A) ==> Permutation(A:=list A)) permutations.
-Proof.
-  intros l l' H. induction H.
-  - repeat constructor.
-  - cbn. rewrite IHPermutation. apply Permutation_refl.
-  - cbn.
 Admitted.
 
 Lemma permutations_spec:
   forall l l', Permutation l l' <-> In l' (permutations l).
 Proof.
   intros l l'. split; intro H.
-  - induction H.
-    + apply permutations_refl.
-    + cbn. apply in_flat_map. exists l'.
-      split; [assumption | apply additions_spec; constructor].
-    + cbn. apply in_flat_map. exists (x :: l). split.
-      * apply in_flat_map. exists l.
-        split; [apply permutations_refl | now left].
-      * apply additions_spec. repeat constructor.
-    + rewrite H, H0. apply permutations_refl.
-  - revert H. revert l'. induction l.
-    + intros l' [->|[]]. apply Permutation_refl.
-    + intros l' H. cbn in H. apply in_flat_map in H as [x [H0 H1]].
-      specialize (IHl x H0). rewrite IHl.
-      apply Permutation_Add, additions_spec. assumption.
+  - revert H. revert l'. induction l; intros l' H.
+    + apply Permutation_nil in H as ->. now apply In_singleton.
+    + cbn. apply in_flat_map. exists l. split.
+      * apply permutations_refl.
+      * apply additions_spec, Add_Permutation. assumption.
+  - revert H. revert l'. induction l; intros l' H.
+    + apply In_singleton in H as <-. constructor.
+    + cbn in H. apply in_flat_map in H as [l'' [Hl'' H%additions_spec]].
+      specialize (IHl _ Hl''). rewrite IHl. apply Permutation_Add. assumption.
 Qed.
 
 Theorem permutations_fact l:
