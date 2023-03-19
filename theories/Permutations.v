@@ -205,20 +205,19 @@ Proof.
   split; [assumption | now left].
 Qed.
 
-Lemma Add_Permutation a l l':
-  Permutation (a :: l) l' -> Add a l l'.
-Proof.
-Admitted.
-
 Lemma permutations_spec:
   forall l l', Permutation l l' <-> In l' (permutations l).
 Proof.
   intros l l'. split; intro H.
   - revert H. revert l'. induction l; intros l' H.
     + apply Permutation_nil in H as ->. now apply In_singleton.
-    + cbn. apply in_flat_map. exists l. split.
-      * apply permutations_refl.
-      * apply additions_spec, Add_Permutation. assumption.
+    + cbn. apply in_flat_map.
+      symmetry in H.
+      destruct (Permutation_vs_elt_inv nil _ _ H) as [l1 [l2 ->]].
+      exists (l1 ++ l2); split.
+      * apply IHl. apply Permutation_cons_app_inv with (a:=a).
+        symmetry. assumption.
+      * apply additions_spec, Add_app.
   - revert H. revert l'. induction l; intros l' H.
     + apply In_singleton in H as <-. constructor.
     + cbn in H. apply in_flat_map in H as [l'' [Hl'' H%additions_spec]].
