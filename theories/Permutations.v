@@ -33,6 +33,30 @@ Proof.
   - left. reflexivity.
   - intros x Hx. apply H. right. assumption.
 Qed.
+
+Lemma notin_app {A} a (l1 l2 : list A):
+  ~ In a l1 -> ~ In a l2 -> ~ In a (l1 ++ l2).
+Proof.
+  intros H1 H2. induction l1 as [|b l1 IHl1].
+  - exact H2.
+  - cbn. intros [].
+    + apply H1. subst a. apply in_eq.
+    + apply not_in_cons in H1 as [].
+      apply IHl1; assumption.
+Qed.
+
+Lemma NoDup_app [A] (l1 l2 : list A):
+  NoDup l1 -> NoDup l2 -> (forall a, In a l1 -> ~ In a l2) ->
+  NoDup (l1 ++ l2).
+Proof.
+  intros H1 H2 H. induction l1 as [|a l1 IHl1]; [assumption|].
+  apply NoDup_cons_iff in H1 as [].
+  cbn. constructor.
+  - apply notin_app; [assumption|apply H, in_eq].
+  - apply IHl1; [assumption|].
+    intros. apply H. right. assumption.
+Qed.
+
 End flat_map.
 
 Lemma In_singleton [A : Type] (x y : A):
@@ -210,9 +234,8 @@ Lemma permutations_spec:
 Proof.
   intros l l'. split; intro H.
   - revert H. revert l'. induction l; intros l' H.
-    + apply Permutation_nil in H as ->. now apply In_singleton.
-    + cbn. apply in_flat_map.
-      symmetry in H.
+    + apply Permutation_nil in H as ->. apply permutations_refl.
+    + cbn. apply in_flat_map. symmetry in H.
       destruct (Permutation_vs_elt_inv nil _ _ H) as [l1 [l2 ->]].
       exists (l1 ++ l2); split.
       * apply IHl. apply Permutation_cons_app_inv with (a:=a).
@@ -233,5 +256,14 @@ Proof.
     intros x Hx%permutations_spec. rewrite additions_length.
     f_equal. apply Permutation_length. symmetry. assumption.
 Qed.
+
+Theorem permutations_NoDup l:
+  NoDup l -> NoDup (permutations l).
+Proof.
+  intros H. induction H.
+  - constructor; [apply in_nil|constructor].
+  - cbn. rewrite flat_map_concat_map.
+Abort.
+
 
 End permutations.
