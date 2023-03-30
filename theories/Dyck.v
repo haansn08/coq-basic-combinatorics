@@ -51,8 +51,10 @@ Proof.
   apply perm_skip. symmetry. apply Permutation_cons_append.
 Qed.
 
+Coercion Z.of_nat : nat >-> Z.
+
 Lemma level_count w:
-   level w = Z.of_nat (#true w) - Z.of_nat (#false w).
+   level w = #true w - #false w.
 Proof.
   induction w.
   - reflexivity.
@@ -113,7 +115,7 @@ Qed.
 
 Lemma firstn_add_skipn {A: Type} (l: list A) (n m : nat):
   firstn (n+m)%nat l = firstn n l ++ (firstn m (skipn n l)).
-Proof. (* can be done much shorter possibly *)
+Proof. (* possibly can be done much shorter *)
   destruct (Nat.le_decidable n (length l)) as [H|H].
   - rewrite <- (firstn_skipn n l), firstn_app at 1.
     rewrite firstn_length. rewrite min_l by assumption.
@@ -124,6 +126,36 @@ Proof. (* can be done much shorter possibly *)
     rewrite !firstn_all2, skipn_all2 by lia.
     rewrite firstn_nil, app_nil_r. reflexivity.
 Qed.
+
+Section level_zero_at.
+(* first time we return to ground level *)
+Definition level_zero_at w n :=
+  (0 < n)%nat /\ level (firstn n w) = 0.
+
+Variable w : word.
+Hypothesis Hnil: w <> nil.
+Hypothesis Hzero: level w = 0.
+
+Lemma level_zero_at_length:
+  level_zero_at w (length w).
+Proof.
+  split.
+  + apply Nat.neq_0_lt_0. intro H.
+    apply Hnil,length_zero_iff_nil. assumption.
+  + rewrite firstn_all. assumption.
+Qed.
+
+Lemma level_zero_at_least:
+  has_unique_least_element le (level_zero_at w).
+Proof.
+  apply dec_inh_nat_subset_has_unique_least_element.
+  - intro n. apply Decidable.dec_and.
+    + apply Nat.lt_decidable.
+    + apply Z.eq_decidable.
+  - exists (length w). apply level_zero_at_length.
+Qed.
+
+End level_zero_at.
 
 Lemma level_firstn_dyck w:
   level w = 0 ->
@@ -136,24 +168,12 @@ Proof.
   (* consider first n where (firstn n w) returns to ground *)
   intros H0 H1.
   destruct (list_nil_decidable w) as [->|Hnil]; [constructor|].
-  pose (P n := (0 < n)%nat /\ level (firstn n w) = 0).
-  assert (P (length w)) as Pw. {
-    unfold P. split.
-    + apply Nat.neq_0_lt_0. intro H.
-      apply Hnil,length_zero_iff_nil. assumption.
-    + rewrite firstn_all. assumption.
-  }
-  assert (has_unique_least_element le P) as [n [[Hn n_min] n_uniq]]. {
-    apply dec_inh_nat_subset_has_unique_least_element.
-    - intro n. apply Decidable.dec_and.
-      + apply Nat.lt_decidable.
-      + apply Z.eq_decidable.
-    - exists (length w). exact Pw.
-  }
-  clear n_uniq. unfold P in Hn. destruct Hn as [Hn0 Hn].
+  destruct (level_zero_at_least w Hnil H0) as [n [[[Hn0 Hn] n_min] n_uniq]].
+  clear n_uniq.
   (* is it the very end? *)
   destruct (lt_eq_lt_dec n (length w)) as [[H|H]|H].
-  - rewrite <- (firstn_skipn n). apply Dyck_app.
+  - (*no: w if of form Dyck_app *)
+    rewrite <- (firstn_skipn n). apply Dyck_app.
     + apply IH; clear IH.
       * rewrite firstn_length_le; auto with arith.
       * assumption.
@@ -192,8 +212,8 @@ Proof.
       * intros k H.
         destruct (Z.le_decidable 0 (level (firstn k w'))); [assumption|exfalso].
         (* we went to the bottom at k, in contradiction to minimality n *)
-        assert (P (S k)). {
-          unfold P. split; [apply Nat.lt_0_succ|]. apply Z.le_antisymm.
+        assert (level_zero_at (true::w'++[false]) (S k)). {
+          split; [apply Nat.lt_0_succ|]. apply Z.le_antisymm.
           - clear -H H3. cbn. rewrite firstn_app.
             replace (k - length w')%nat with 0%nat by lia.
             rewrite firstn_O, app_nil_r. lia.
@@ -201,7 +221,8 @@ Proof.
         }
         specialize (n_min (S k) H4). clear -H n_min.
         rewrite length_cons_ends in n_min. lia.
-  - exfalso. clear -n_min H Pw. specialize (n_min (length w) Pw). lia.
+  - exfalso.
+    specialize (n_min (length w) (level_zero_at_length w Hnil H0)). lia.
 Qed.
 End level.
 
@@ -219,8 +240,45 @@ Proof.
     + intros n Hn. apply level_count_le_iff, H2, Hn.
 Qed.
 
-(** Counting Dyck words *)
+Require Import FunInd Recdef.
 
-(* any Dyck word can be written uniquely as "true ++ w1 ++ false ++ w2" *)
+Fixpoint dycks_aux fuel (n: nat) {struct fuel}: list word :=
+match fuel with
+| 0 => [ nil ]
+| S fuel =>
+match n with
+| 0 => [ nil ]
+| S n =>
+  flat_map
+  (fun k =>
+    map (fun '(v,w) => (true::v++[false])++w)
+    (list_prod (dycks_aux fuel k) (dycks_aux fuel (n-k))))
+  (seq 0 (S n))
+end
+end.
+
+Definition dycks n := dycks_aux n n.
+
+Lemma dycks_correct n:
+  forall w, In w (dycks n) -> Dyck w.
+Proof.
+  induction n as [n IH] using (well_founded_induction lt_wf).
+  intros w H. destruct n.
+  - apply In_singleton in H. subst w. constructor.
+  - cbn -[flat_map seq app] in H.
+    apply in_flat_map in H as [k [Hk%in_seq H]].
+    apply in_map_iff in H as [[v' w'] [<- H%in_prod_iff]]. destruct H.
+    constructor; [constructor|].
+    + apply (IH k).
+      * destruct Hk. assumption.
+      * 
+Abort.
+
 Lemma dyck_factorize w:
-  Dyck w -> exists ! w1 w2, Dyck w1 /\ Dyck w2 /\ w = true::w1++false::w2.
+  w <> nil -> Dyck w ->
+  exists ! w1 w2, Dyck w1 /\ Dyck w2 /\ w = true::w1++[false]++w2.
+Proof.
+  intros Hnil D. specialize (dyck_level_zero w D) as H0.
+  destruct (level_zero_at_least w Hnil H0) as [n [[[Hn0 Hn] n_min] n_uniq]].
+  remember ... destruct (level_zero_even _ Hn).
+Abort.

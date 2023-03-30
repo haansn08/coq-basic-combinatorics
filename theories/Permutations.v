@@ -33,7 +33,39 @@ Proof.
   - left. reflexivity.
   - intros x Hx. apply H. right. assumption.
 Qed.
+
+Lemma notin_app {A} a (l1 l2 : list A):
+  ~ In a l1 -> ~ In a l2 -> ~ In a (l1 ++ l2).
+Proof.
+  intros H1 H2. induction l1 as [|b l1 IHl1].
+  - exact H2.
+  - cbn. intros [].
+    + apply H1. subst a. apply in_eq.
+    + apply not_in_cons in H1 as [].
+      apply IHl1; assumption.
+Qed.
+
+Lemma NoDup_app [A] (l1 l2 : list A):
+  NoDup l1 -> NoDup l2 -> (forall a, In a l1 -> ~ In a l2) ->
+  NoDup (l1 ++ l2).
+Proof.
+  intros H1 H2 H. induction l1 as [|a l1 IHl1]; [assumption|].
+  apply NoDup_cons_iff in H1 as [].
+  cbn. constructor.
+  - apply notin_app; [assumption|apply H, in_eq].
+  - apply IHl1; [assumption|].
+    intros. apply H. right. assumption.
+Qed.
+
 End flat_map.
+
+Lemma In_singleton [A : Type] (x y : A):
+  In x [y] <-> y = x.
+Proof.
+  split; intro H.
+  - destruct H; [assumption | contradiction H].
+  - subst y. constructor. reflexivity.
+Qed.
 
 Section factorials.
 Fixpoint falling_fact n x :=
@@ -197,41 +229,22 @@ Proof.
   split; [assumption | now left].
 Qed.
 
-#[export] Instance Permutation_additions:
-  Morphisms.Proper (eq ==> Permutation (A:=A) ==> Permutation (A:=list A)) additions.
-Proof.
-  intros _ x -> l l' H. induction H.
-  - cbn. apply Permutation_refl.
-  - 
-Abort.
-
-#[export] Instance Permutation_permutations:
-  Morphisms.Proper (Permutation (A:=A) ==> Permutation(A:=list A)) permutations.
-Proof.
-  intros l l' H. induction H.
-  - repeat constructor.
-  - cbn. rewrite IHPermutation. apply Permutation_refl.
-  - cbn.
-Admitted.
-
 Lemma permutations_spec:
   forall l l', Permutation l l' <-> In l' (permutations l).
 Proof.
   intros l l'. split; intro H.
-  - induction H.
-    + apply permutations_refl.
-    + cbn. apply in_flat_map. exists l'.
-      split; [assumption | apply additions_spec; constructor].
-    + cbn. apply in_flat_map. exists (x :: l). split.
-      * apply in_flat_map. exists l.
-        split; [apply permutations_refl | now left].
-      * apply additions_spec. repeat constructor.
-    + rewrite H, H0. apply permutations_refl.
-  - revert H. revert l'. induction l.
-    + intros l' [->|[]]. apply Permutation_refl.
-    + intros l' H. cbn in H. apply in_flat_map in H as [x [H0 H1]].
-      specialize (IHl x H0). rewrite IHl.
-      apply Permutation_Add, additions_spec. assumption.
+  - revert H. revert l'. induction l; intros l' H.
+    + apply Permutation_nil in H as ->. apply permutations_refl.
+    + cbn. apply in_flat_map. symmetry in H.
+      destruct (Permutation_vs_elt_inv nil _ _ H) as [l1 [l2 ->]].
+      exists (l1 ++ l2); split.
+      * apply IHl. apply Permutation_cons_app_inv with (a:=a).
+        symmetry. assumption.
+      * apply additions_spec, Add_app.
+  - revert H. revert l'. induction l; intros l' H.
+    + apply In_singleton in H as <-. constructor.
+    + cbn in H. apply in_flat_map in H as [l'' [Hl'' H%additions_spec]].
+      specialize (IHl _ Hl''). rewrite IHl. apply Permutation_Add. assumption.
 Qed.
 
 Theorem permutations_fact l:
@@ -243,5 +256,14 @@ Proof.
     intros x Hx%permutations_spec. rewrite additions_length.
     f_equal. apply Permutation_length. symmetry. assumption.
 Qed.
+
+Theorem permutations_NoDup l:
+  NoDup l -> NoDup (permutations l).
+Proof.
+  intros H. induction H.
+  - constructor; [apply in_nil|constructor].
+  - cbn. rewrite flat_map_concat_map.
+Abort.
+
 
 End permutations.
