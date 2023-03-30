@@ -3,8 +3,14 @@ Require Import Wellfounded Morphisms.
 Require Import Lia.
 Import ListNotations.
 
+(* already done in
+   https://github.com/math-comp/Coq-Combi/blob/master/theories/Combi/Dyckword.v *)
+
 From BasicCombinatorics Require Import Even Binomial.
 
+(* putting this in Set gives us a
+   "Case analysis on sort Set is not allowed for inductive definition ex."
+*)
 Inductive Dyck: word -> Prop :=
 | Dyck_nil: Dyck nil
 | Dyck_shift: forall w, Dyck w -> Dyck (true::w++[false])
@@ -98,7 +104,7 @@ Proof.
 Qed.
 
 Lemma list_nil_decidable {A: Type} (l: list A):
-  Decidable.decidable (l = nil).
+  {l = nil} + {l <> nil}.
 Proof.
   destruct l.
   - left. reflexivity.
@@ -212,3 +218,9 @@ Proof.
     + apply level_count_eq_iff. assumption.
     + intros n Hn. apply level_count_le_iff, H2, Hn.
 Qed.
+
+(** Counting Dyck words *)
+
+(* any Dyck word can be written uniquely as "true ++ w1 ++ false ++ w2" *)
+Lemma dyck_factorize w:
+  Dyck w -> exists ! w1 w2, Dyck w1 /\ Dyck w2 /\ w = true::w1++false::w2.
