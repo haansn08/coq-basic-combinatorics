@@ -242,43 +242,35 @@ Qed.
 
 Require Import FunInd Recdef.
 
-Fixpoint dycks_aux fuel (n: nat) {struct fuel}: list word :=
-match fuel with
-| 0 => [ nil ]
-| S fuel =>
-match n with
-| 0 => [ nil ]
-| S n =>
-  flat_map
-  (fun k =>
-    map (fun '(v,w) => (true::v++[false])++w)
-    (list_prod (dycks_aux fuel k) (dycks_aux fuel (n-k))))
-  (seq 0 (S n))
-end
-end.
-
-Definition dycks n := dycks_aux n n.
-
-Lemma dycks_correct n:
-  forall w, In w (dycks n) -> Dyck w.
-Proof.
-  induction n as [n IH] using (well_founded_induction lt_wf).
-  intros w H. destruct n.
-  - apply In_singleton in H. subst w. constructor.
-  - cbn -[flat_map seq app] in H.
-    apply in_flat_map in H as [k [Hk%in_seq H]].
-    apply in_map_iff in H as [[v' w'] [<- H%in_prod_iff]]. destruct H.
-    constructor; [constructor|].
-    + apply (IH k).
-      * destruct Hk. assumption.
-      * 
-Abort.
-
 Lemma dyck_factorize w:
   w <> nil -> Dyck w ->
   exists ! w1 w2, Dyck w1 /\ Dyck w2 /\ w = true::w1++[false]++w2.
 Proof.
   intros Hnil D. specialize (dyck_level_zero w D) as H0.
   destruct (level_zero_at_least w Hnil H0) as [n [[[Hn0 Hn] n_min] n_uniq]].
-  remember ... destruct (level_zero_even _ Hn).
 Abort.
+
+(* enumerating Dyck words *)
+(* from https://coq.zulipchat.com/#narrow/stream/237977-Coq-users/topic/Enumerating.20Dyck.20words/near/340729664 *)
+
+(* foldi_nat f x n = f n (f (n-1) .. (f 0 x) ..) *)
+Definition foldi_nat {A : Type} (f : nat -> A -> A) (x : A) : nat -> A :=
+  fix foldi (n : nat) :=
+    f n (match n with
+         | O => x
+         | S n => foldi n
+         end).
+
+Notation "a >>= k" := (concat (map k a)) (at level 40).
+
+Fixpoint dyck (n : nat) : list (list bool) :=
+  match n with
+  | O => [ [] ]
+  | S n =>
+    let prev := foldi_nat (fun k etc => dyck k :: etc) [] n in
+    combine prev (rev prev) >>= fun '(dyck_k, dyck_n_k) =>
+    list_prod dyck_k dyck_n_k >>= fun '(xs, ys) =>
+    [true :: xs ++ false :: ys]
+  end.
+
+Compute dyck 4.

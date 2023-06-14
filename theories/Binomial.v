@@ -186,15 +186,43 @@ Proof.
      + cbn [length]. apply binomials_cons_false. assumption.
 Qed.
 
-Require Import Factorial Arith.
+Require Import Factorial Arith Lia.
+
+Lemma binomials_n_lt_k n k:
+  n < k -> binomials n k = [].
+Proof.
+  revert k. induction n; destruct k.
+  * intro E. destruct (Nat.lt_irrefl _ E).
+  * reflexivity.
+  * intros E%Nat.nle_succ_0. destruct E.
+  * intros H%Nat.succ_lt_mono. cbn.
+    now rewrite IHn, (IHn (S k)) by lia.
+Qed.
+
+Lemma binomials_n_n n:
+  binomials n n = [repeat true n].
+Proof.
+  induction n.
+  - reflexivity.
+  - cbn. rewrite IHn, (binomials_n_lt_k n (S n)); auto.
+Qed.
+
 Theorem binomials_count n k:
-  k <= n -> length (binomials n k) * (fact k * fact (n - k)) = fact n.
+  k <= n -> length (binomials n k) = fact n / (fact k * fact (n - k)).
 Proof.
   revert k. induction n.
   - cbn. destruct k.
     + reflexivity.
     + intro H. exfalso. eapply Nat.nle_succ_0. exact H.
   - cbn [binomials]. destruct k.
-    + rewrite !Nat.mul_1_l, Nat.sub_0_r. reflexivity.
-    + intros H%le_S_n. rewrite app_length, !map_length.
-Abort.
+    + rewrite !Nat.mul_1_l, Nat.sub_0_r, Nat.div_same.
+      * reflexivity.
+      * apply Nat.neq_0_lt_0, lt_O_fact.
+    + intros H%le_S_n%le_lt_eq_dec.
+      rewrite app_length, !map_length, Nat.sub_succ. destruct H.
+      * rewrite (IHn k), (IHn (S k)) by lia. clear IHn.
+        give_up.
+      * clear IHn. subst k.
+        rewrite Nat.sub_diag, Nat.mul_1_r, Nat.div_same by apply Nat.neq_0_lt_0, lt_O_fact.
+        rewrite binomials_n_n, binomials_n_lt_k; auto.
+Qed.
