@@ -47,14 +47,6 @@ match n, k with
              ++ map (cons false) (binomials n' k) 
 end.
 
-Lemma In_singleton [A : Type] (x y : A):
-  In x [y] <-> y = x.
-Proof.
-  split; intro H.
-  - destruct H; [assumption | contradiction H].
-  - subst y. constructor. reflexivity.
-Qed.
-
 Lemma Binomial_falses_iff w:
   Binomial 0 w <-> w = repeat false (length w).
 Proof.
@@ -130,6 +122,14 @@ Proof.
   - cbn. apply in_or_app. right. apply In_map_cons. exact H.
 Qed.
 
+Lemma In_singleton [A : Type] (x y : A):
+  In x [y] <-> y = x.
+Proof.
+  split; intro H.
+  - destruct H; [assumption | contradiction H].
+  - subst y. constructor. reflexivity.
+Qed.
+
 Lemma binomials_O_nil k w:
   In w (binomials 0 k) -> w = [].
 Proof.
@@ -185,3 +185,16 @@ Proof.
      + cbn [length]. apply binomials_cons_true. assumption.
      + cbn [length]. apply binomials_cons_false. assumption.
 Qed.
+
+Require Import Factorial Arith.
+Theorem binomials_count n k:
+  k <= n -> length (binomials n k) * (fact k * fact (n - k)) = fact n.
+Proof.
+  revert k. induction n.
+  - cbn. destruct k.
+    + reflexivity.
+    + intro H. exfalso. eapply Nat.nle_succ_0. exact H.
+  - cbn [binomials]. destruct k.
+    + rewrite !Nat.mul_1_l, Nat.sub_0_r. reflexivity.
+    + intros H%le_S_n. rewrite app_length, !map_length.
+Abort.

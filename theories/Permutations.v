@@ -116,6 +116,28 @@ Proof.
 Qed.
 End factorials.
 
+Section ListDec.
+
+Variable A : Type.
+Hypothesis dec: forall x y : A, {x=y}+{x<>y}.
+
+(* Coq 8.17? *)
+Lemma not_NoDup (l: list A):
+    ~ NoDup l -> exists a l1 l2 l3, l = l1++a::l2++a::l3.
+Proof using A dec.
+intro H0. induction l as [|a l IHl].
+- contradiction H0; constructor.
+- destruct (ListDec.NoDup_dec dec l) as [H1|H1].
+  + destruct (ListDec.In_dec dec a l) as [H2|H2].
+    * destruct (in_split _ _ H2) as (l1 & l2 & ->).
+      now exists a, nil, l1, l2.
+    * now contradiction H0; constructor.
+  + destruct (IHl H1) as (b & l1 & l2 & l3 & ->).
+    now exists b, (a::l1), l2, l3.
+Qed.
+
+End ListDec.
+
 Section permutations.
 Variable A : Type.
 Implicit Type l : list A.
@@ -257,13 +279,19 @@ Proof.
     f_equal. apply Permutation_length. symmetry. assumption.
 Qed.
 
+Hypothesis dec: forall x y : A, {x=y}+{x<>y}.
+
 Theorem permutations_NoDup l:
   NoDup l -> NoDup (permutations l).
 Proof.
-  intros H. induction H.
-  - constructor; [apply in_nil|constructor].
-  - cbn. rewrite flat_map_concat_map.
+  intro H. induction H.
+  - constructor; [apply in_nil | constructor].
+  - destruct (ListDec.NoDup_dec (list_eq_dec dec) (permutations (x :: l))) as [|notNoDup].
+    + assumption.
+    + exfalso. cbn in notNoDup.
+      apply not_NoDup in notNoDup as [l0 [L1 [L2 [L3 H1]]]].
 Abort.
+
 
 
 End permutations.
