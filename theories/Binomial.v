@@ -207,22 +207,41 @@ Proof.
   - cbn. rewrite IHn, (binomials_n_lt_k n (S n)); auto.
 Qed.
 
+Definition choose n k := fact n / (fact k * fact (n - k)).
+
+Lemma choose_k_0 n: choose n 0 = 1.
+Proof.
+  unfold choose. rewrite !Nat.mul_1_l, Nat.sub_0_r, Nat.div_same.
+  - reflexivity.
+  - apply Nat.neq_0_lt_0, lt_O_fact.
+Qed.
+
+Lemma choose_n_n n: choose n n = 1.
+Proof.
+  unfold choose.
+  rewrite Nat.sub_diag, Nat.mul_1_r, Nat.div_same
+    by apply Nat.neq_0_lt_0, lt_O_fact.
+  reflexivity.
+Qed.
+
+Lemma choose_recursion n k:
+  k < n -> choose (S n) (S k) = choose n k + choose n (S k).
+Proof.
+Admitted.
+
 Theorem binomials_count n k:
-  k <= n -> length (binomials n k) = fact n / (fact k * fact (n - k)).
+  k <= n -> length (binomials n k) = choose n k.
 Proof.
   revert k. induction n.
   - cbn. destruct k.
     + reflexivity.
     + intro H. exfalso. eapply Nat.nle_succ_0. exact H.
   - cbn [binomials]. destruct k.
-    + rewrite !Nat.mul_1_l, Nat.sub_0_r, Nat.div_same.
-      * reflexivity.
-      * apply Nat.neq_0_lt_0, lt_O_fact.
-    + intros H%le_S_n%le_lt_eq_dec.
-      rewrite app_length, !map_length, Nat.sub_succ. destruct H.
-      * rewrite (IHn k), (IHn (S k)) by lia. clear IHn.
-        give_up.
+    + rewrite choose_k_0. reflexivity.
+    + intros H%le_S_n%le_lt_eq_dec. destruct H.
+      * rewrite app_length, !map_length.
+        rewrite (IHn k), (IHn (S k)) by lia.
+        symmetry. apply choose_recursion. assumption.
       * clear IHn. subst k.
-        rewrite Nat.sub_diag, Nat.mul_1_r, Nat.div_same by apply Nat.neq_0_lt_0, lt_O_fact.
-        rewrite binomials_n_n, binomials_n_lt_k; auto.
+        rewrite binomials_n_n, binomials_n_lt_k, choose_n_n; auto.
 Qed.
