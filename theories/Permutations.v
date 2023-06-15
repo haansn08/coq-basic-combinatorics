@@ -1,4 +1,4 @@
-Require Import List Permutation Factorial Arith.
+Require Import List ListDec Permutation Factorial Arith.
 Require Import Lia Setoid.
 Import ListNotations.
 
@@ -257,12 +257,16 @@ Proof.
     f_equal. apply Permutation_length. symmetry. assumption.
 Qed.
 
+Hypothesis decA : forall x y: A, {x = y} + {x <> y}.
 Theorem permutations_NoDup l:
   NoDup l -> NoDup (permutations l).
 Proof.
   intros H. induction H.
   - constructor; [apply in_nil|constructor].
-  - cbn. rewrite flat_map_concat_map.
+  - assert (listListDec := ListDec.NoDup_dec (list_eq_dec decA)).
+    destruct (listListDec (permutations (x :: l))) as [H1|H1].
+    + assumption.
+    + exfalso.
 Abort.
 
 
