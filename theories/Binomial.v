@@ -47,14 +47,6 @@ match n, k with
              ++ map (cons false) (binomials n' k) 
 end.
 
-Lemma In_singleton [A : Type] (x y : A):
-  In x [y] <-> y = x.
-Proof.
-  split; intro H.
-  - destruct H; [assumption | contradiction H].
-  - subst y. constructor. reflexivity.
-Qed.
-
 Lemma Binomial_falses_iff w:
   Binomial 0 w <-> w = repeat false (length w).
 Proof.
@@ -130,6 +122,14 @@ Proof.
   - cbn. apply in_or_app. right. apply In_map_cons. exact H.
 Qed.
 
+Lemma In_singleton [A : Type] (x y : A):
+  In x [y] <-> y = x.
+Proof.
+  split; intro H.
+  - destruct H; [assumption | contradiction H].
+  - subst y. constructor. reflexivity.
+Qed.
+
 Lemma binomials_O_nil k w:
   In w (binomials 0 k) -> w = [].
 Proof.
@@ -184,4 +184,64 @@ Proof.
      + now left.
      + cbn [length]. apply binomials_cons_true. assumption.
      + cbn [length]. apply binomials_cons_false. assumption.
+Qed.
+
+Require Import Factorial Arith Lia.
+
+Lemma binomials_n_lt_k n k:
+  n < k -> binomials n k = [].
+Proof.
+  revert k. induction n; destruct k.
+  * intro E. destruct (Nat.lt_irrefl _ E).
+  * reflexivity.
+  * intros E%Nat.nle_succ_0. destruct E.
+  * intros H%Nat.succ_lt_mono. cbn.
+    now rewrite IHn, (IHn (S k)) by lia.
+Qed.
+
+Lemma binomials_n_n n:
+  binomials n n = [repeat true n].
+Proof.
+  induction n.
+  - reflexivity.
+  - cbn. rewrite IHn, (binomials_n_lt_k n (S n)); auto.
+Qed.
+
+Definition choose n k := fact n / (fact k * fact (n - k)).
+
+Lemma choose_k_0 n: choose n 0 = 1.
+Proof.
+  unfold choose. rewrite !Nat.mul_1_l, Nat.sub_0_r, Nat.div_same.
+  - reflexivity.
+  - apply Nat.neq_0_lt_0, lt_O_fact.
+Qed.
+
+Lemma choose_n_n n: choose n n = 1.
+Proof.
+  unfold choose.
+  rewrite Nat.sub_diag, Nat.mul_1_r, Nat.div_same
+    by apply Nat.neq_0_lt_0, lt_O_fact.
+  reflexivity.
+Qed.
+
+Lemma choose_recursion n k:
+  k < n -> choose (S n) (S k) = choose n k + choose n (S k).
+Proof.
+Admitted.
+
+Theorem binomials_count n k:
+  k <= n -> length (binomials n k) = choose n k.
+Proof.
+  revert k. induction n.
+  - cbn. destruct k.
+    + reflexivity.
+    + intro H. exfalso. eapply Nat.nle_succ_0. exact H.
+  - cbn [binomials]. destruct k.
+    + rewrite choose_k_0. reflexivity.
+    + intros H%le_S_n%le_lt_eq_dec. destruct H.
+      * rewrite app_length, !map_length.
+        rewrite (IHn k), (IHn (S k)) by lia.
+        symmetry. apply choose_recursion. assumption.
+      * clear IHn. subst k.
+        rewrite binomials_n_n, binomials_n_lt_k, choose_n_n; auto.
 Qed.
