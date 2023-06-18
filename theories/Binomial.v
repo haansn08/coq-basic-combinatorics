@@ -1,4 +1,4 @@
-Require Import List Bool.
+Require Import List Bool FinFun.
 Import ListNotations.
 
 Definition word := list bool.
@@ -184,6 +184,52 @@ Proof.
      + now left.
      + cbn [length]. apply binomials_cons_true. assumption.
      + cbn [length]. apply binomials_cons_false. assumption.
+Qed.
+
+Lemma NoDup_singleton {A : Type} (a: A):
+  NoDup [a].
+Proof. constructor; [apply in_nil|constructor]. Qed.
+
+Lemma notin_app {A} a (l1 l2 : list A):
+  ~ In a l1 -> ~ In a l2 -> ~ In a (l1 ++ l2).
+Proof.
+  intros H1 H2. induction l1 as [|b l1 IHl1].
+  - exact H2.
+  - cbn. intros [].
+    + apply H1. subst a. apply in_eq.
+    + apply not_in_cons in H1 as [].
+      apply IHl1; assumption.
+Qed.
+
+Lemma NoDup_app [A] (l1 l2 : list A):
+  NoDup l1 -> NoDup l2 -> (forall a, In a l1 -> ~ In a l2) ->
+  NoDup (l1 ++ l2).
+Proof.
+  intros H1 H2 H. induction l1 as [|a l1 IHl1]; [assumption|].
+  apply NoDup_cons_iff in H1 as [].
+  cbn. constructor.
+  - apply notin_app; [assumption|apply H, in_eq].
+  - apply IHl1; [assumption|].
+    intros. apply H. right. assumption.
+Qed.
+
+Theorem binomials_NoDup n k:
+  NoDup (binomials n k).
+Proof.
+  revert k. induction n.
+  - destruct k; [apply NoDup_singleton | constructor].
+  - destruct k.
+    + apply NoDup_singleton.
+    + cbn. apply NoDup_app.
+      * apply FinFun.Injective_map_NoDup.
+        -- intros x y H. injection H. easy.
+        -- apply IHn.
+      * apply FinFun.Injective_map_NoDup.
+        -- intros x y H. injection H. easy.
+        -- apply IHn.
+      * intros l H1%In_map_cons_elim H2%In_map_cons_elim.
+        destruct H1 as [l1 [H1 _]]. destruct H2 as [l2 [H2 _]].
+        subst l. discriminate H2.
 Qed.
 
 Require Import Factorial Arith Lia.

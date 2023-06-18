@@ -34,29 +34,6 @@ Proof.
   - intros x Hx. apply H. right. assumption.
 Qed.
 
-Lemma notin_app {A} a (l1 l2 : list A):
-  ~ In a l1 -> ~ In a l2 -> ~ In a (l1 ++ l2).
-Proof.
-  intros H1 H2. induction l1 as [|b l1 IHl1].
-  - exact H2.
-  - cbn. intros [].
-    + apply H1. subst a. apply in_eq.
-    + apply not_in_cons in H1 as [].
-      apply IHl1; assumption.
-Qed.
-
-Lemma NoDup_app [A] (l1 l2 : list A):
-  NoDup l1 -> NoDup l2 -> (forall a, In a l1 -> ~ In a l2) ->
-  NoDup (l1 ++ l2).
-Proof.
-  intros H1 H2 H. induction l1 as [|a l1 IHl1]; [assumption|].
-  apply NoDup_cons_iff in H1 as [].
-  cbn. constructor.
-  - apply notin_app; [assumption|apply H, in_eq].
-  - apply IHl1; [assumption|].
-    intros. apply H. right. assumption.
-Qed.
-
 End flat_map.
 
 Lemma In_singleton [A : Type] (x y : A):
