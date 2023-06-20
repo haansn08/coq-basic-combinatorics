@@ -270,9 +270,23 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma choose_n_1 n: choose (S n) 1 = S n.
+Proof.
+  unfold choose. rewrite Nat.mul_1_l, Nat.sub_succ, Nat.sub_0_r.
+  cbn [fact]. rewrite Nat.div_mul.
+  + reflexivity.
+  + apply fact_neq_0.
+Qed.
+
 Lemma choose_recursion n k:
   k < n -> choose (S n) (S k) = choose n k + choose n (S k).
 Proof.
+  intros H. induction n, k.
+  - exfalso. eapply Nat.lt_irrefl. exact H.
+  - exfalso. lia.
+  - rewrite !choose_n_1, choose_k_0. reflexivity.
+  - apply Nat.succ_lt_mono in H. destruct (lt_dec (S k) n).
+    + specialize (IHn l). clear l. rewrite IHn. clear IHn.
 Admitted.
 
 Theorem binomials_count n k:
@@ -281,7 +295,7 @@ Proof.
   revert k. induction n.
   - cbn. destruct k.
     + reflexivity.
-    + intro H. exfalso. eapply Nat.nle_succ_0. exact H.
+    + intros H%Nat.nle_succ_0. contradiction.
   - cbn [binomials]. destruct k.
     + rewrite choose_k_0. reflexivity.
     + intros H%le_S_n%le_lt_eq_dec. destruct H.
