@@ -1,48 +1,14 @@
-Require Import List ListDec Permutation Factorial Arith.
+Require Import Permutation Factorial Arith.
 Require Import Lia Setoid.
-Import ListNotations.
+
+
+From BasicCombinatorics Require Import List.
 
 (* see also:
   - https://github.com/clucas26e4/List_Permutation
   - https://github.com/math-comp/math-comp/blob/master/mathcomp/ssreflect/seq.v#L4326
 *)
 
-(* TODO: remove when https://github.com/coq/coq/pull/17082 is released *)
-Section flat_map.
-Lemma concat_length A l:
-  length (concat l) = list_sum (map (@length A) l).
-Proof.
-  induction l; [reflexivity|].
-  simpl. rewrite app_length.
-  f_equal. assumption.
-Qed.
-
-Lemma flat_map_length A B (f: A -> list B) l:
-  length (flat_map f l) = list_sum (map (fun x => length (f x)) l).
-Proof.
-  rewrite flat_map_concat_map, concat_length, map_map. reflexivity.
-Qed.
-
-Corollary flat_map_constant_length A B c (f: A -> list B) l:
-  (forall x, In x l -> length (f x) = c) -> length (flat_map f l) = (length l) * c.
-Proof.
-  intro H. rewrite flat_map_length.
-  induction l; [reflexivity|].
-  simpl. rewrite IHl, H.
-  - reflexivity.
-  - left. reflexivity.
-  - intros x Hx. apply H. right. assumption.
-Qed.
-
-End flat_map.
-
-Lemma In_singleton [A : Type] (x y : A):
-  In x [y] <-> y = x.
-Proof.
-  split; intro H.
-  - destruct H; [assumption | contradiction H].
-  - subst y. constructor. reflexivity.
-Qed.
 
 Section factorials.
 Fixpoint falling_fact n x :=

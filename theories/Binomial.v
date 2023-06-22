@@ -1,5 +1,5 @@
-Require Import List Bool FinFun.
-Import ListNotations.
+Require Import Bool FinFun.
+From BasicCombinatorics Require Import List.
 
 Definition word := list bool.
 
@@ -76,26 +76,6 @@ Proof.
     + left. assumption.
 Qed.
 
-Lemma In_map_cons_elim [A: Type] (a : A) l ls:
-  In l (map (cons a) ls) -> exists l', l=a::l' /\ In l' ls.
-Proof.
-  intros H%in_map_iff. destruct H as [l' [<- H]].
-  exists l'. tauto.
-Qed.
-
-Lemma In_map_cons [A: Type] (a : A) l ls:
-  In l ls -> In (a::l) (map (cons a) ls).
-Proof. intro H. apply in_map_iff. exists l. tauto. Qed.
-
-Lemma In_app_map_cons w l1 l2:
-  In w (map (cons true) l1 ++ map (cons false) l2) ->
-  (exists w', w=true::w' /\ In w' l1) \/ (exists w', w=false::w' /\ In w' l2).
-Proof.
-  intros H%in_app_or. destruct H as [H1 | H2].
-  - left. apply In_map_cons_elim in H1. exact H1.
-  - right. apply In_map_cons_elim in H2. exact H2.
-Qed.
-
 Lemma binomials_cons_true n k w:
   In (true::w) (binomials (S n) (S k)) <-> In w (binomials n k).
 Proof.
@@ -120,14 +100,6 @@ Proof.
     + discriminate H1.
     + injection H1 as ->. assumption.
   - cbn. apply in_or_app. right. apply In_map_cons. exact H.
-Qed.
-
-Lemma In_singleton [A : Type] (x y : A):
-  In x [y] <-> y = x.
-Proof.
-  split; intro H.
-  - destruct H; [assumption | contradiction H].
-  - subst y. constructor. reflexivity.
 Qed.
 
 Lemma binomials_O_nil k w:
@@ -184,33 +156,6 @@ Proof.
      + now left.
      + cbn [length]. apply binomials_cons_true. assumption.
      + cbn [length]. apply binomials_cons_false. assumption.
-Qed.
-
-Lemma NoDup_singleton {A : Type} (a: A):
-  NoDup [a].
-Proof. constructor; [apply in_nil|constructor]. Qed.
-
-Lemma notin_app {A} a (l1 l2 : list A):
-  ~ In a l1 -> ~ In a l2 -> ~ In a (l1 ++ l2).
-Proof.
-  intros H1 H2. induction l1 as [|b l1 IHl1].
-  - exact H2.
-  - cbn. intros [].
-    + apply H1. subst a. apply in_eq.
-    + apply not_in_cons in H1 as [].
-      apply IHl1; assumption.
-Qed.
-
-Lemma NoDup_app [A] (l1 l2 : list A):
-  NoDup l1 -> NoDup l2 -> (forall a, In a l1 -> ~ In a l2) ->
-  NoDup (l1 ++ l2).
-Proof.
-  intros H1 H2 H. induction l1 as [|a l1 IHl1]; [assumption|].
-  apply NoDup_cons_iff in H1 as [].
-  cbn. constructor.
-  - apply notin_app; [assumption|apply H, in_eq].
-  - apply IHl1; [assumption|].
-    intros. apply H. right. assumption.
 Qed.
 
 Theorem binomials_NoDup n k:
@@ -270,9 +215,16 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma choose_recursion n k:
-  k < n -> choose (S n) (S k) = choose n k + choose n (S k).
+Lemma div_eqn_multiply a b c:
+  b <> 0 -> a = c * b -> a / b = c.
+Proof. intros H ->. apply Nat.div_mul. assumption. Qed.
+
+Lemma choose_recursion n k (H: k < n):
+   choose (S n) (S k) = choose n k + choose n (S k).
 Proof.
+  unfold choose. apply div_eqn_multiply.
+  - apply Nat.neq_mul_0. split; apply fact_neq_0.
+  - rewrite Nat.mul_add_distr_r.
 Admitted.
 
 Theorem binomials_count n k:
