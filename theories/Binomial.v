@@ -224,9 +224,18 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma div_add_distr a b c:
+  (a + b) / c = a / c + b / c.
+Proof.
+  destruct c; [reflexivity|].
+Admitted.
+
 Lemma choose_recursion n k:
   k < n -> choose (S n) (S k) = choose n k + choose n (S k).
 Proof.
+intro H. enough (fact (S n) = fact n * (S k)  + fact n * (n-k)).
+- unfold choose. rewrite H0. 
+  
 Admitted.
 
 Theorem binomials_count n k:
