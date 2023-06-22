@@ -1,5 +1,6 @@
 -R theories/ BasicCombinatorics
 
+theories/List.v
 theories/Permutations.v
 theories/Binomial.v
 theories/Even.v

@@ -6,3 +6,4 @@
 \#*#
 .CoqMakefile.d
 .lia.cache
+*.crashcoqide

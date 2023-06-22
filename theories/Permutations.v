@@ -1,71 +1,13 @@
-Require Import List ListDec Permutation Factorial Arith.
+Require Import Permutation Factorial Arith.
 Require Import Lia Setoid.
-Import ListNotations.
+
+
+From BasicCombinatorics Require Import List.
 
 (* see also:
   - https://github.com/clucas26e4/List_Permutation
   - https://github.com/math-comp/math-comp/blob/master/mathcomp/ssreflect/seq.v#L4326
 *)
-
-(* TODO: remove when https://github.com/coq/coq/pull/17082 is released *)
-Section flat_map.
-Lemma concat_length A l:
-  length (concat l) = list_sum (map (@length A) l).
-Proof.
-  induction l; [reflexivity|].
-  simpl. rewrite app_length.
-  f_equal. assumption.
-Qed.
-
-Lemma flat_map_length A B (f: A -> list B) l:
-  length (flat_map f l) = list_sum (map (fun x => length (f x)) l).
-Proof.
-  rewrite flat_map_concat_map, concat_length, map_map. reflexivity.
-Qed.
-
-Corollary flat_map_constant_length A B c (f: A -> list B) l:
-  (forall x, In x l -> length (f x) = c) -> length (flat_map f l) = (length l) * c.
-Proof.
-  intro H. rewrite flat_map_length.
-  induction l; [reflexivity|].
-  simpl. rewrite IHl, H.
-  - reflexivity.
-  - left. reflexivity.
-  - intros x Hx. apply H. right. assumption.
-Qed.
-
-Lemma notin_app {A} a (l1 l2 : list A):
-  ~ In a l1 -> ~ In a l2 -> ~ In a (l1 ++ l2).
-Proof.
-  intros H1 H2. induction l1 as [|b l1 IHl1].
-  - exact H2.
-  - cbn. intros [].
-    + apply H1. subst a. apply in_eq.
-    + apply not_in_cons in H1 as [].
-      apply IHl1; assumption.
-Qed.
-
-Lemma NoDup_app [A] (l1 l2 : list A):
-  NoDup l1 -> NoDup l2 -> (forall a, In a l1 -> ~ In a l2) ->
-  NoDup (l1 ++ l2).
-Proof.
-  intros H1 H2 H. induction l1 as [|a l1 IHl1]; [assumption|].
-  apply NoDup_cons_iff in H1 as [].
-  cbn. constructor.
-  - apply notin_app; [assumption|apply H, in_eq].
-  - apply IHl1; [assumption|].
-    intros. apply H. right. assumption.
-Qed.
-
-End flat_map.
-
-Lemma In_singleton [A : Type] (x y : A):
-  In x [y] <-> y = x.
-Proof.
-  split; intro H.
-  - destruct H; [assumption | contradiction H].
-  - subst y. constructor. reflexivity.
-Qed.
 
 Section factorials.
 Fixpoint falling_fact n x :=
@@ -115,28 +57,6 @@ Proof.
   rewrite rising_fact_S, IHn; constructor.
 Qed.
 End factorials.
-
-Section ListDec.
-
-Variable A : Type.
-Hypothesis dec: forall x y : A, {x=y}+{x<>y}.
-
-(* Coq 8.17? *)
-Lemma not_NoDup (l: list A):
-    ~ NoDup l -> exists a l1 l2 l3, l = l1++a::l2++a::l3.
-Proof using A dec.
-intro H0. induction l as [|a l IHl].
-- contradiction H0; constructor.
-- destruct (ListDec.NoDup_dec dec l) as [H1|H1].
-  + destruct (ListDec.In_dec dec a l) as [H2|H2].
-    * destruct (in_split _ _ H2) as (l1 & l2 & ->).
-      now exists a, nil, l1, l2.
-    * now contradiction H0; constructor.
-  + destruct (IHl H1) as (b & l1 & l2 & l3 & ->).
-    now exists b, (a::l1), l2, l3.
-Qed.
-
-End ListDec.
 
 Section permutations.
 Variable A : Type.
@@ -208,23 +128,6 @@ Corollary additions_spec x:
   forall (l l': list A), Add x l l' <-> In l' (additions x l).
 Proof. intros l l'. rewrite Add_insert_at, in_additions. reflexivity. Qed.
 
-Lemma seq_shift_n len start n:
-  map (Nat.add n) (seq start len) = seq (n + start) len.
-Proof.
-  induction n.
-  - now rewrite map_id.
-  - cbn. now rewrite <- map_map, IHn, seq_shift.
-Qed.
-
-Lemma map_ext_seq {X} (f g: nat -> X) n start d:
-  (forall j, start <= j < start + n -> f (d + j) = g j) ->
-  map f (seq (start + d) n) = map g (seq start n).
-Proof.
-  intro H. rewrite Nat.add_comm, <- seq_shift_n.
-  rewrite map_map. apply map_ext_in.
-  intros j ?%in_seq. apply H. assumption.
-Qed.
-
 Lemma additions_cons x a l:
   additions x (a :: l) = (x::a::l)::map (cons a) (additions x l).
 Proof.
@@ -279,16 +182,30 @@ Proof.
     f_equal. apply Permutation_length. symmetry. assumption.
 Qed.
 
-Hypothesis decA : forall x y: A, {x = y} + {x <> y}.
+Lemma insert_at_inj x l:
+  ~ In x l -> FinFun.Injective (fun i : nat => insert_at i x l).
+Proof.
+  intros Hx i j H.
+Admitted.
+
+Lemma additions_NoDup x l:
+  NoDup l -> ~ In x l -> NoDup (additions x l).
+Proof.
+  intros Hl Hx. unfold additions. apply FinFun.Injective_map_NoDup.
+  - apply insert_at_inj. assumption.
+  - apply seq_NoDup.
+Qed.
+
 Theorem permutations_NoDup l:
   NoDup l -> NoDup (permutations l).
 Proof.
   intros H. induction H.
   - constructor; [apply in_nil|constructor].
-  - assert (listListDec := ListDec.NoDup_dec (list_eq_dec decA)).
-    destruct (listListDec (permutations (x :: l))) as [H1|H1].
-    + assumption.
-    + exfalso.
+  - cbn. rewrite flat_map_concat_map. apply NoDup_concat.
+    + apply Forall_forall. intros xl Hxl%in_map_iff.
+      destruct Hxl as [l' [H1 H2%permutations_spec]]. subst xl.
+      apply additions_NoDup; now rewrite <- H2.
+    +
 Abort.
 
 End permutations.

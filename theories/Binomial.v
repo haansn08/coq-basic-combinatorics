@@ -1,5 +1,5 @@
-Require Import List Bool.
-Import ListNotations.
+Require Import Bool FinFun.
+From BasicCombinatorics Require Import List.
 
 Definition word := list bool.
 
@@ -76,26 +76,6 @@ Proof.
     + left. assumption.
 Qed.
 
-Lemma In_map_cons_elim [A: Type] (a : A) l ls:
-  In l (map (cons a) ls) -> exists l', l=a::l' /\ In l' ls.
-Proof.
-  intros H%in_map_iff. destruct H as [l' [<- H]].
-  exists l'. tauto.
-Qed.
-
-Lemma In_map_cons [A: Type] (a : A) l ls:
-  In l ls -> In (a::l) (map (cons a) ls).
-Proof. intro H. apply in_map_iff. exists l. tauto. Qed.
-
-Lemma In_app_map_cons w l1 l2:
-  In w (map (cons true) l1 ++ map (cons false) l2) ->
-  (exists w', w=true::w' /\ In w' l1) \/ (exists w', w=false::w' /\ In w' l2).
-Proof.
-  intros H%in_app_or. destruct H as [H1 | H2].
-  - left. apply In_map_cons_elim in H1. exact H1.
-  - right. apply In_map_cons_elim in H2. exact H2.
-Qed.
-
 Lemma binomials_cons_true n k w:
   In (true::w) (binomials (S n) (S k)) <-> In w (binomials n k).
 Proof.
@@ -120,14 +100,6 @@ Proof.
     + discriminate H1.
     + injection H1 as ->. assumption.
   - cbn. apply in_or_app. right. apply In_map_cons. exact H.
-Qed.
-
-Lemma In_singleton [A : Type] (x y : A):
-  In x [y] <-> y = x.
-Proof.
-  split; intro H.
-  - destruct H; [assumption | contradiction H].
-  - subst y. constructor. reflexivity.
 Qed.
 
 Lemma binomials_O_nil k w:
@@ -186,6 +158,25 @@ Proof.
      + cbn [length]. apply binomials_cons_false. assumption.
 Qed.
 
+Theorem binomials_NoDup n k:
+  NoDup (binomials n k).
+Proof.
+  revert k. induction n.
+  - destruct k; [apply NoDup_singleton | constructor].
+  - destruct k.
+    + apply NoDup_singleton.
+    + cbn. apply NoDup_app.
+      * apply FinFun.Injective_map_NoDup.
+        -- intros x y H. injection H. easy.
+        -- apply IHn.
+      * apply FinFun.Injective_map_NoDup.
+        -- intros x y H. injection H. easy.
+        -- apply IHn.
+      * intros l H1%In_map_cons_elim H2%In_map_cons_elim.
+        destruct H1 as [l1 [H1 _]]. destruct H2 as [l2 [H2 _]].
+        subst l. discriminate H2.
+Qed.
+
 Require Import Factorial Arith Lia.
 
 Lemma binomials_n_lt_k n k:
@@ -209,11 +200,19 @@ Qed.
 
 Definition choose n k := fact n / (fact k * fact (n - k)).
 
-Lemma choose_k_0 n: choose n 0 = 1.
+Lemma choose_n_0 n: choose n 0 = 1.
 Proof.
   unfold choose. rewrite !Nat.mul_1_l, Nat.sub_0_r, Nat.div_same.
   - reflexivity.
   - apply Nat.neq_0_lt_0, lt_O_fact.
+Qed.
+
+Lemma choose_n_1 n: choose (S n) 1 = S n.
+Proof.
+  unfold choose. rewrite Nat.mul_1_l, Nat.sub_succ, Nat.sub_0_r.
+  cbn [fact]. rewrite Nat.div_mul.
+  + reflexivity.
+  + apply fact_neq_0.
 Qed.
 
 Lemma choose_n_n n: choose n n = 1.
@@ -234,8 +233,7 @@ Lemma choose_recursion n k:
   k < n -> choose (S n) (S k) = choose n k + choose n (S k).
 Proof.
 intro H. enough (fact (S n) = fact n * (S k)  + fact n * (n-k)).
-- unfold choose. rewrite H0. 
-  
+- unfold choose. rewrite H0.
 Admitted.
 
 Theorem binomials_count n k:
@@ -244,9 +242,9 @@ Proof.
   revert k. induction n.
   - cbn. destruct k.
     + reflexivity.
-    + intro H. exfalso. eapply Nat.nle_succ_0. exact H.
+    + intros H%Nat.nle_succ_0. contradiction.
   - cbn [binomials]. destruct k.
-    + rewrite choose_k_0. reflexivity.
+    + rewrite choose_n_0. reflexivity.
     + intros H%le_S_n%le_lt_eq_dec. destruct H.
       * rewrite app_length, !map_length.
         rewrite (IHn k), (IHn (S k)) by lia.
