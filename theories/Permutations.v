@@ -9,7 +9,6 @@ From BasicCombinatorics Require Import List.
   - https://github.com/math-comp/math-comp/blob/master/mathcomp/ssreflect/seq.v#L4326
 *)
 
-
 Section factorials.
 Fixpoint falling_fact n x :=
 match n, x with
@@ -58,28 +57,6 @@ Proof.
   rewrite rising_fact_S, IHn; constructor.
 Qed.
 End factorials.
-
-Section ListDec.
-
-Variable A : Type.
-Hypothesis dec: forall x y : A, {x=y}+{x<>y}.
-
-(* Coq 8.17? *)
-Lemma not_NoDup (l: list A):
-    ~ NoDup l -> exists a l1 l2 l3, l = l1++a::l2++a::l3.
-Proof using A dec.
-intro H0. induction l as [|a l IHl].
-- contradiction H0; constructor.
-- destruct (ListDec.NoDup_dec dec l) as [H1|H1].
-  + destruct (ListDec.In_dec dec a l) as [H2|H2].
-    * destruct (in_split _ _ H2) as (l1 & l2 & ->).
-      now exists a, nil, l1, l2.
-    * now contradiction H0; constructor.
-  + destruct (IHl H1) as (b & l1 & l2 & l3 & ->).
-    now exists b, (a::l1), l2, l3.
-Qed.
-
-End ListDec.
 
 Section permutations.
 Variable A : Type.
@@ -151,23 +128,6 @@ Corollary additions_spec x:
   forall (l l': list A), Add x l l' <-> In l' (additions x l).
 Proof. intros l l'. rewrite Add_insert_at, in_additions. reflexivity. Qed.
 
-Lemma seq_shift_n len start n:
-  map (Nat.add n) (seq start len) = seq (n + start) len.
-Proof.
-  induction n.
-  - now rewrite map_id.
-  - cbn. now rewrite <- map_map, IHn, seq_shift.
-Qed.
-
-Lemma map_ext_seq {X} (f g: nat -> X) n start d:
-  (forall j, start <= j < start + n -> f (d + j) = g j) ->
-  map f (seq (start + d) n) = map g (seq start n).
-Proof.
-  intro H. rewrite Nat.add_comm, <- seq_shift_n.
-  rewrite map_map. apply map_ext_in.
-  intros j ?%in_seq. apply H. assumption.
-Qed.
-
 Lemma additions_cons x a l:
   additions x (a :: l) = (x::a::l)::map (cons a) (additions x l).
 Proof.
@@ -222,16 +182,12 @@ Proof.
     f_equal. apply Permutation_length. symmetry. assumption.
 Qed.
 
-Hypothesis decA : forall x y: A, {x = y} + {x <> y}.
 Theorem permutations_NoDup l:
   NoDup l -> NoDup (permutations l).
 Proof.
   intros H. induction H.
   - constructor; [apply in_nil|constructor].
-  - assert (listListDec := ListDec.NoDup_dec (list_eq_dec decA)).
-    destruct (listListDec (permutations (x :: l))) as [H1|H1].
-    + assumption.
-    + exfalso.
+  - cbn.
 Abort.
 
 End permutations.
