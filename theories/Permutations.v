@@ -182,12 +182,30 @@ Proof.
     f_equal. apply Permutation_length. symmetry. assumption.
 Qed.
 
+Lemma insert_at_inj x l:
+  ~ In x l -> FinFun.Injective (fun i : nat => insert_at i x l).
+Proof.
+  intros Hx i j H.
+Admitted.
+
+Lemma additions_NoDup x l:
+  NoDup l -> ~ In x l -> NoDup (additions x l).
+Proof.
+  intros Hl Hx. unfold additions. apply FinFun.Injective_map_NoDup.
+  - apply insert_at_inj. assumption.
+  - apply seq_NoDup.
+Qed.
+
 Theorem permutations_NoDup l:
   NoDup l -> NoDup (permutations l).
 Proof.
   intros H. induction H.
   - constructor; [apply in_nil|constructor].
-  - cbn.
+  - cbn. rewrite flat_map_concat_map. apply NoDup_concat.
+    + apply Forall_forall. intros xl Hxl%in_map_iff.
+      destruct Hxl as [l' [H1 H2%permutations_spec]]. subst xl.
+      apply additions_NoDup; now rewrite <- H2.
+    +
 Abort.
 
 End permutations.

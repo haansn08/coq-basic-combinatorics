@@ -120,8 +120,9 @@ Proof.
     + apply Forall_inv_tail in H1. assumption.
     + inversion H2. assumption.
   - intros a aInl1 ainL%in_concat. destruct ainL as [l2 [l2inL ainL2]].
-    clear IHL. inversion H2. subst x. subst l.
-    exact (H4 l2 l2inL a aInl1 ainL2).
+    eapply Pairwise_inv in H2.
+    + specialize (H2 a). apply H2; [assumption|exact ainL2].
+    + assumption.
 Qed.
 
 Section ListDec.
