@@ -200,11 +200,19 @@ Qed.
 
 Definition choose n k := fact n / (fact k * fact (n - k)).
 
-Lemma choose_k_0 n: choose n 0 = 1.
+Lemma choose_n_0 n: choose n 0 = 1.
 Proof.
   unfold choose. rewrite !Nat.mul_1_l, Nat.sub_0_r, Nat.div_same.
   - reflexivity.
   - apply Nat.neq_0_lt_0, lt_O_fact.
+Qed.
+
+Lemma choose_n_1 n: choose (S n) 1 = S n.
+Proof.
+  unfold choose. rewrite Nat.mul_1_l, Nat.sub_succ, Nat.sub_0_r.
+  cbn [fact]. rewrite Nat.div_mul.
+  + reflexivity.
+  + apply fact_neq_0.
 Qed.
 
 Lemma choose_n_n n: choose n n = 1.
@@ -233,9 +241,9 @@ Proof.
   revert k. induction n.
   - cbn. destruct k.
     + reflexivity.
-    + intro H. exfalso. eapply Nat.nle_succ_0. exact H.
+    + intros H%Nat.nle_succ_0. contradiction.
   - cbn [binomials]. destruct k.
-    + rewrite choose_k_0. reflexivity.
+    + rewrite choose_n_0. reflexivity.
     + intros H%le_S_n%le_lt_eq_dec. destruct H.
       * rewrite app_length, !map_length.
         rewrite (IHn k), (IHn (S k)) by lia.
