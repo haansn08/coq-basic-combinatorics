@@ -63,7 +63,7 @@ Variable A : Type.
 Implicit Type l : list A.
 
 Definition insert_at i x l :=
-  firstn i l ++ [x] ++ skipn i l.
+  firstn i l ++ x :: skipn i l.
 
 Lemma Add_nil x l:
   Add x [] l <-> l = [x].
@@ -182,11 +182,21 @@ Proof.
     f_equal. apply Permutation_length. symmetry. assumption.
 Qed.
 
-Lemma insert_at_inj x l:
-  ~ In x l -> FinFun.Injective (fun i : nat => insert_at i x l).
+Lemma insert_at_inj x l i j:
+  ~ In x l -> i <= length l -> j <= length l ->
+  insert_at i x l = insert_at j x l -> i = j.
 Proof.
-  intros Hx i j H.
-Admitted.
+  intros xInl Hi Hj H. unfold insert_at in H.
+  apply elts_inj in H as [H1 _].
+  - apply (f_equal (@length _)) in H1.
+    now rewrite !firstn_length, !Nat.min_l in H1.
+  - intro E. apply xInl. clear -E.
+    rewrite <- (firstn_skipn i). apply in_or_app.
+    left. assumption.
+  - intro E. apply xInl. clear -E.
+    rewrite <- (firstn_skipn j). apply in_or_app.
+    left. assumption.
+Qed.
 
 Lemma additions_NoDup x l:
   NoDup l -> ~ In x l -> NoDup (additions x l).

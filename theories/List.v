@@ -163,3 +163,31 @@ Proof.
   rewrite map_map. apply map_ext_in.
   intros j ?%in_seq. apply H. assumption.
 Qed.
+
+Lemma app_inj_r [A] (x y1 y2: list A):
+  x ++ y1 = x ++ y2 -> y1 = y2.
+Proof.
+  intro H. induction x.
+  - exact H.
+  - apply IHx. injection H. trivial.
+Qed.
+
+Lemma not_in_app_nil [A] a (x y z: list A):
+  ~ In a y -> a::x = y++z -> y = [].
+Proof.
+  intros aIny H. destruct y; [reflexivity|].
+  exfalso. apply aIny. injection H.
+  constructor. symmetry. assumption.
+Qed.
+
+Lemma elts_inj [A] a (lx1 lx2 ly1 ly2: list A):
+  ~ In a (lx1) -> ~ In a (ly1) ->
+  lx1++a::lx2 = ly1++a::ly2 -> lx1 = ly1 /\ lx2 = ly2.
+Proof.
+  intros Hx Hy H. enough (lx1 = ly1) as C1.
+  - subst ly1. split; [reflexivity|].
+    apply app_inj_r in H. injection H. trivial.
+  - (* revert H Hx Hy. revert lx2 ly1 ly2. *) induction lx1.
+    + apply not_in_app_nil in H; easy.
+    + rewrite IHlx1.
+Admitted.
