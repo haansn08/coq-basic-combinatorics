@@ -272,5 +272,3 @@ Fixpoint dyck (n : nat) : list (list bool) :=
     list_prod dyck_k dyck_n_k >>= fun '(xs, ys) =>
     [true :: xs ++ false :: ys]
   end.
-
-Compute dyck 4.

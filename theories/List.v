@@ -1,4 +1,4 @@
-Require Import Arith.
+Require Import Arith Morphisms.
 From Coq.Lists Require Export List ListDec.
 Export ListNotations.
 
@@ -95,12 +95,40 @@ Lemma Pairwise_inv [A] (P: A -> A -> Prop) x l:
   Pairwise P (x::l) -> (forall y, In y l -> P x y).
 Proof. intros H. inversion H. assumption. Qed.
 
+Lemma Pairwise_singleton [A] (P: A -> A -> Prop) x:
+  Pairwise P [x].
+Proof.
+  constructor; [constructor|].
+  intros y E%in_nil. contradiction.
+Qed.
+
+Lemma Pairwise_NoDup [A] (l: list A):
+  Pairwise (fun a b => a <> b) l <-> NoDup l.
+Proof.
+  split; intro H.
+  - induction H; constructor.
+    + intro Hx. now apply (H0 x).
+    + assumption.
+  - induction H; constructor.
+    + assumption.
+    + now intros y Hy ->.
+Qed.
+
 Lemma app_self_nil [A] (l1 l2: list A):
   l1 = l1 ++ l2 -> l2 = [].
 Proof.
   intro H. induction l1.
   - rewrite H. reflexivity.
   - inversion H. apply IHl1. assumption.
+Qed.
+
+Lemma Pairwise_map [A B] P Q (f: A -> B) l:
+  Proper (P ==> Q) f -> Pairwise P l -> Pairwise Q (map f l).
+Proof.
+  intros PfQ HP. induction HP; [constructor|].
+  cbn. constructor; [assumption|].
+  intros fy Hy%in_map_iff. destruct Hy as [y [<- H1]].
+  apply PfQ. apply H. assumption.
 Qed.
 
 Lemma concat_self_false [A] (l : list (list A)):
@@ -187,7 +215,5 @@ Proof.
   intros Hx Hy H. enough (lx1 = ly1) as C1.
   - subst ly1. split; [reflexivity|].
     apply app_inj_r in H. injection H. trivial.
-  - (* revert H Hx Hy. revert lx2 ly1 ly2. *) induction lx1.
-    + apply not_in_app_nil in H; easy.
-    + rewrite IHlx1.
+  - 
 Admitted.
