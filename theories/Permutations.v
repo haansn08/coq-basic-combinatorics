@@ -201,8 +201,11 @@ Qed.
 Lemma additions_NoDup x l:
   NoDup l -> ~ In x l -> NoDup (additions x l).
 Proof.
-  intros Hl Hx. unfold additions. apply FinFun.Injective_map_NoDup.
-  - apply insert_at_inj. assumption.
+  intros Hl Hx. unfold additions.
+  apply (InjectiveOn_map_NoDup (fun i => i <= length l)).
+  - intros i j Pi Pj Heq. eapply (insert_at_inj x l); try assumption.
+  - apply Forall_forall. intros j H.
+    apply in_seq in H as [_ H%le_S_n]. assumption.
   - apply seq_NoDup.
 Qed.
 

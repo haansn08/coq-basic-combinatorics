@@ -1,4 +1,4 @@
-Require Import Arith Morphisms.
+Require Import Arith Morphisms FinFun.
 From Coq.Lists Require Export List ListDec.
 Export ListNotations.
 
@@ -208,6 +208,25 @@ Proof.
   constructor. symmetry. assumption.
 Qed.
 
+Definition InjectiveOn [A B] (P: A -> Prop) (f: A -> B) :=
+  forall x y: A, P x -> P y -> f x = f y -> x = y.
+
+Lemma InjectiveOn_map_NoDup [A B] (P: A -> Prop) (f:A->B) (l:list A) :
+ InjectiveOn P f -> Forall P l -> NoDup l -> NoDup (map f l).
+Proof.
+ intros HInj Pl Hl. induction Hl; [constructor|].
+ cbn. constructor.
+ - intros Hf. apply H. clear H.
+   apply in_map_iff in Hf as [y [Heq Hy]]. enough (x = y) as H.
+   + rewrite H. assumption.
+   + apply HInj.
+     * apply Forall_inv in Pl. assumption.
+     * apply Forall_inv_tail in Pl. rewrite Forall_forall in Pl.
+       apply Pl. assumption.
+     * symmetry. assumption.
+ - apply IHHl. apply Forall_inv_tail in Pl. assumption.
+Qed.
+
 Lemma elts_inj [A] a (lx1 lx2 ly1 ly2: list A):
   ~ In a (lx1) -> ~ In a (ly1) ->
   lx1++a::lx2 = ly1++a::ly2 -> lx1 = ly1 /\ lx2 = ly2.
@@ -217,3 +236,4 @@ Proof.
     apply app_inj_r in H. injection H. trivial.
   - 
 Admitted.
+
