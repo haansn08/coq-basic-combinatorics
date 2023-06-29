@@ -153,28 +153,6 @@ Proof.
     + assumption.
 Qed.
 
-Section ListDec.
-
-Variable A : Type.
-Hypothesis dec: forall x y : A, {x=y}+{x<>y}.
-
-(* Coq 8.17? *)
-Lemma not_NoDup (l: list A):
-    ~ NoDup l -> exists a l1 l2 l3, l = l1++a::l2++a::l3.
-Proof using A dec.
-intro H0. induction l as [|a l IHl].
-- contradiction H0; constructor.
-- destruct (ListDec.NoDup_dec dec l) as [H1|H1].
-  + destruct (ListDec.In_dec dec a l) as [H2|H2].
-    * destruct (in_split _ _ H2) as (l1 & l2 & ->).
-      now exists a, nil, l1, l2.
-    * now contradiction H0; constructor.
-  + destruct (IHl H1) as (b & l1 & l2 & l3 & ->).
-    now exists b, (a::l1), l2, l3.
-Qed.
-
-End ListDec.
-
 Lemma seq_shift_n len start n:
   map (Nat.add n) (seq start len) = seq (n + start) len.
 Proof.
@@ -208,7 +186,7 @@ Proof.
   constructor. symmetry. assumption.
 Qed.
 
-Lemma elts_inj [A] a (lx1 lx2 ly1 ly2: list A):
+Lemma app_inj_pivot [A] a (lx1 lx2 ly1 ly2: list A):
   ~ In a (lx1) -> ~ In a (ly1) ->
   lx1++a::lx2 = ly1++a::ly2 -> lx1 = ly1 /\ lx2 = ly2.
 Proof.
@@ -223,6 +201,26 @@ Proof.
       * injection H. intros H2 <-. f_equal. apply IH.
         -- eapply not_in_cons. exact Hy.
         -- exact H2.
+Qed.
+
+Lemma rev_inj [A] (l1 l2: list A):
+  rev l1 = rev l2 -> l1 = l2.
+Proof.
+  intro H. apply (f_equal (@rev _)) in H.
+  rewrite !rev_involutive in H. assumption.
+Qed.
+
+Lemma app_inj_pivot_tail [A] a (lx1 lx2 ly1 ly2: list A):
+  ~ In a (lx2) -> ~ In a (ly2) ->
+  lx1++a::lx2 = ly1++a::ly2 -> lx1 = ly1 /\ lx2 = ly2.
+Proof.
+  intros Hx Hy H. apply (f_equal (@rev _)) in H.
+  rewrite !rev_app_distr in H. cbn in H.
+  rewrite <- !app_assoc in H. cbn in H.
+  apply app_inj_pivot in H as [H1%rev_inj H2%rev_inj].
+  - split; assumption.
+  - rewrite in_rev in Hx. assumption.
+  - rewrite in_rev in Hy. assumption. 
 Qed.
 
 Definition InjectiveOn [A B] (P: A -> Prop) (f: A -> B) :=
