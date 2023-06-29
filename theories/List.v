@@ -88,11 +88,15 @@ Qed.
 
 Inductive Pairwise [A] (P: A -> A -> Prop) : list A -> Prop :=
   Pairwise_nil: Pairwise P []
-| Pairwise_cons: forall (x : A) (l : list A),
+| Pairwise_cons x l:
     Pairwise P l -> (forall y, In y l -> P x y) -> Pairwise P (x::l).
 
 Lemma Pairwise_inv [A] (P: A -> A -> Prop) x l:
   Pairwise P (x::l) -> (forall y, In y l -> P x y).
+Proof. intros H. inversion H. assumption. Qed.
+
+Lemma Pairwise_inv_tail [A] (P: A -> A -> Prop) x l:
+  Pairwise P (x::l) -> Pairwise P l.
 Proof. intros H. inversion H. assumption. Qed.
 
 Lemma Pairwise_singleton [A] (P: A -> A -> Prop) x:
@@ -100,6 +104,34 @@ Lemma Pairwise_singleton [A] (P: A -> A -> Prop) x:
 Proof.
   constructor; [constructor|].
   intros y E%in_nil. contradiction.
+Qed.
+
+Lemma Pairwise_and [A] (P Q: A -> A -> Prop) l:
+  Pairwise P l -> Pairwise Q l ->
+  Pairwise (fun a b => P a b /\ Q a b) l.
+Proof.
+  intros Hp Hq. induction l; [constructor|].
+  inversion Hp. inversion Hq. subst. constructor.
+  - apply IHl; assumption.
+  - intros y H. specialize (H2 y H). specialize (H6 y H).
+    split; assumption.
+Qed.
+
+Lemma Forall_Pairwise1 [A] (P: A -> Prop) l:
+  Forall P l -> Pairwise (fun a b => P a) l.
+Proof.
+  intro H. induction H; constructor.
+  - assumption.
+  - intros. assumption.
+Qed.
+
+Lemma Forall_Pairwise2 [A] (P: A -> Prop) l:
+  Forall P l -> Pairwise (fun a b => P b) l.
+Proof.
+  intro H. induction H; constructor.
+  - assumption.
+  - intros y Hy. rewrite Forall_forall in H0.
+    exact (H0 _ Hy).
 Qed.
 
 Lemma Pairwise_NoDup [A] (l: list A):

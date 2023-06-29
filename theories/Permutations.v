@@ -187,7 +187,7 @@ Lemma insert_at_inj x l i j:
   insert_at i x l = insert_at j x l -> i = j.
 Proof.
   intros xInl Hi Hj H. unfold insert_at in H.
-  apply elts_inj in H as [H1 _].
+  apply app_inj_pivot in H as [H1 _].
   - apply (f_equal (@length _)) in H1.
     now rewrite !firstn_length, !Nat.min_l in H1.
   - intro E. apply xInl. clear -E.
@@ -209,6 +209,13 @@ Proof.
   - apply seq_NoDup.
 Qed.
 
+Lemma additions_Proper x:
+  Morphisms.Proper
+  ((fun l1 l2 => (~ In x l1 /\ ~ In x l2) /\ l1 <> l2) ==>
+   (fun l1 l2 : list (list A) =>
+    forall a : list A, In a l1 -> ~ In a l2)) (additions x).
+Admitted.
+
 Theorem permutations_NoDup l:
   NoDup l -> NoDup (permutations l).
 Proof.
@@ -218,7 +225,15 @@ Proof.
     + apply Forall_forall. intros xl Hxl%in_map_iff.
       destruct Hxl as [l' [H1 H2%permutations_spec]]. subst xl.
       apply additions_NoDup; now rewrite <- H2.
-    +
-Abort.
+    + apply (Pairwise_map (fun l1 l2 => (~ In x l1 /\ ~ In x l2) /\ l1 <> l2)).
+      * apply additions_Proper.
+      * apply Pairwise_and.
+        -- apply Pairwise_and.
+           ++ apply Forall_Pairwise1, Forall_forall.
+              intros l' Hl%permutations_spec. rewrite <- Hl. assumption.
+           ++ apply Forall_Pairwise2, Forall_forall.
+              intros l' Hl%permutations_spec. rewrite <- Hl. assumption.
+        -- apply Pairwise_NoDup. assumption.
+Qed.
 
 End permutations.
