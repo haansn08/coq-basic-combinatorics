@@ -208,6 +208,23 @@ Proof.
   constructor. symmetry. assumption.
 Qed.
 
+Lemma elts_inj [A] a (lx1 lx2 ly1 ly2: list A):
+  ~ In a (lx1) -> ~ In a (ly1) ->
+  lx1++a::lx2 = ly1++a::ly2 -> lx1 = ly1 /\ lx2 = ly2.
+Proof.
+  intros Hx Hy H. enough (lx1 = ly1) as C1.
+  - subst ly1. split; [reflexivity|].
+    apply app_inj_r in H. injection H. trivial.
+  - revert Hy H. revert ly1. induction lx1 as [|b lx1 IH].
+    + intros. now apply not_in_app_nil in H.
+    + apply not_in_cons in Hx as [Hab Hx]. specialize (IH Hx).
+      intros ly1 Hy H. destruct ly1 as [|c ly1].
+      * contradiction Hab. injection H. easy.
+      * injection H. intros H2 <-. f_equal. apply IH.
+        -- eapply not_in_cons. exact Hy.
+        -- exact H2.
+Qed.
+
 Definition InjectiveOn [A B] (P: A -> Prop) (f: A -> B) :=
   forall x y: A, P x -> P y -> f x = f y -> x = y.
 
@@ -226,14 +243,4 @@ Proof.
      * symmetry. assumption.
  - apply IHHl. apply Forall_inv_tail in Pl. assumption.
 Qed.
-
-Lemma elts_inj [A] a (lx1 lx2 ly1 ly2: list A):
-  ~ In a (lx1) -> ~ In a (ly1) ->
-  lx1++a::lx2 = ly1++a::ly2 -> lx1 = ly1 /\ lx2 = ly2.
-Proof.
-  intros Hx Hy H. enough (lx1 = ly1) as C1.
-  - subst ly1. split; [reflexivity|].
-    apply app_inj_r in H. injection H. trivial.
-  - 
-Admitted.
 
