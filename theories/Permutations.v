@@ -225,15 +225,15 @@ Proof.
     + apply Forall_forall. intros xl Hxl%in_map_iff.
       destruct Hxl as [l' [H1 H2%permutations_spec]]. subst xl.
       apply additions_NoDup; now rewrite <- H2.
-    + apply (Pairwise_map (fun l1 l2 => (~ In x l1 /\ ~ In x l2) /\ l1 <> l2)).
+    + apply (ForallOrdPairs_map (fun l1 l2 => (~ In x l1 /\ ~ In x l2) /\ l1 <> l2)).
       * apply additions_Proper.
-      * apply Pairwise_and.
-        -- apply Pairwise_and.
-           ++ apply Forall_Pairwise1, Forall_forall.
+      * apply ForallOrdPairs_and.
+        -- apply ForallOrdPairs_and.
+           ++ apply Forall_ForallOrdPairs_l, Forall_forall.
               intros l' Hl%permutations_spec. rewrite <- Hl. assumption.
-           ++ apply Forall_Pairwise2, Forall_forall.
+           ++ apply Forall_ForallOrdPairs_r, Forall_forall.
               intros l' Hl%permutations_spec. rewrite <- Hl. assumption.
-        -- apply Pairwise_NoDup. assumption.
+        -- apply ForallOrdPairs_NoDup. assumption.
 Qed.
 
 End permutations.

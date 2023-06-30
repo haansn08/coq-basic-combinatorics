@@ -86,64 +86,59 @@ Proof.
     intros. apply H. right. assumption.
 Qed.
 
-Inductive Pairwise [A] (P: A -> A -> Prop) : list A -> Prop :=
-  Pairwise_nil: Pairwise P []
-| Pairwise_cons x l:
-    Pairwise P l -> (forall y, In y l -> P x y) -> Pairwise P (x::l).
-
-Lemma Pairwise_inv [A] (P: A -> A -> Prop) x l:
-  Pairwise P (x::l) -> (forall y, In y l -> P x y).
+Lemma ForallOrdPairs_inv [A] (P: A -> A -> Prop) x l:
+  ForallOrdPairs P (x::l) -> Forall (P x) l.
 Proof. intros H. inversion H. assumption. Qed.
 
-Lemma Pairwise_inv_tail [A] (P: A -> A -> Prop) x l:
-  Pairwise P (x::l) -> Pairwise P l.
+Lemma ForallOrdPairs_inv_tail [A] (P: A -> A -> Prop) x l:
+  ForallOrdPairs P (x::l) -> ForallOrdPairs P l.
 Proof. intros H. inversion H. assumption. Qed.
 
-Lemma Pairwise_singleton [A] (P: A -> A -> Prop) x:
-  Pairwise P [x].
+Lemma ForallOrdPairs_singleton [A] (P: A -> A -> Prop) x:
+  ForallOrdPairs P [x].
+Proof. constructor; constructor. Qed.
+
+Lemma ForallOrdPairs_and [A] (P Q: A -> A -> Prop) l:
+  ForallOrdPairs P l -> ForallOrdPairs Q l ->
+  ForallOrdPairs (fun a b => P a b /\ Q a b) l.
 Proof.
-  constructor; [constructor|].
-  intros y E%in_nil. contradiction.
+  intros Hp Hq. induction l as [|a l IH]; constructor.
+  - apply Forall_and.
+    + apply ForallOrdPairs_inv in Hp. assumption.
+    + apply ForallOrdPairs_inv in Hq. assumption.
+  - apply IH.
+    + apply ForallOrdPairs_inv_tail in Hp. assumption.
+    + apply ForallOrdPairs_inv_tail in Hq. assumption.
 Qed.
 
-Lemma Pairwise_and [A] (P Q: A -> A -> Prop) l:
-  Pairwise P l -> Pairwise Q l ->
-  Pairwise (fun a b => P a b /\ Q a b) l.
+Lemma Forall_indep [A] (P: Prop) (l: list A):
+  P -> Forall (fun x => P) l.
+Proof. intros p. induction l; constructor; assumption. Qed.
+
+Lemma Forall_ForallOrdPairs_l [A] (P: A -> Prop) l:
+  Forall P l -> ForallOrdPairs (fun a b => P a) l.
 Proof.
-  intros Hp Hq. induction l; [constructor|].
-  inversion Hp. inversion Hq. subst. constructor.
-  - apply IHl; assumption.
-  - intros y H. specialize (H2 y H). specialize (H6 y H).
-    split; assumption.
+intro H. induction H; constructor.
+- apply Forall_indep. assumption.
+- assumption.
 Qed.
 
-Lemma Forall_Pairwise1 [A] (P: A -> Prop) l:
-  Forall P l -> Pairwise (fun a b => P a) l.
-Proof.
-  intro H. induction H; constructor.
-  - assumption.
-  - intros. assumption.
-Qed.
+Lemma Forall_ForallOrdPairs_r [A] (P: A -> Prop) l:
+  Forall P l -> ForallOrdPairs (fun a b => P b) l.
+Proof. intro H. induction H; constructor; assumption. Qed.
 
-Lemma Forall_Pairwise2 [A] (P: A -> Prop) l:
-  Forall P l -> Pairwise (fun a b => P b) l.
-Proof.
-  intro H. induction H; constructor.
-  - assumption.
-  - intros y Hy. rewrite Forall_forall in H0.
-    exact (H0 _ Hy).
-Qed.
-
-Lemma Pairwise_NoDup [A] (l: list A):
-  Pairwise (fun a b => a <> b) l <-> NoDup l.
+Lemma ForallOrdPairs_NoDup [A] (l: list A):
+  ForallOrdPairs (fun a b => a <> b) l <-> NoDup l.
 Proof.
   split; intro H.
   - induction H; constructor.
-    + intro Hx. now apply (H0 x).
+    + rewrite Forall_forall in H. intro E.
+      contradiction (H a E). reflexivity.
     + assumption.
   - induction H; constructor.
+    + apply Forall_forall. intros y Hy ->.
+      contradiction.
     + assumption.
-    + now intros y Hy ->.
 Qed.
 
 Lemma app_self_nil [A] (l1 l2: list A):
@@ -154,13 +149,15 @@ Proof.
   - inversion H. apply IHl1. assumption.
 Qed.
 
-Lemma Pairwise_map [A B] P Q (f: A -> B) l:
-  Proper (P ==> Q) f -> Pairwise P l -> Pairwise Q (map f l).
+Lemma ForallOrdPairs_map [A B] P Q (f: A -> B) l:
+  Proper (P ==> Q) f -> ForallOrdPairs P l -> ForallOrdPairs Q (map f l).
 Proof.
-  intros PfQ HP. induction HP; [constructor|].
-  cbn. constructor; [assumption|].
-  intros fy Hy%in_map_iff. destruct Hy as [y [<- H1]].
-  apply PfQ. apply H. assumption.
+  intros Hpq Hp. induction Hp; [constructor|].
+  cbn. constructor.
+  - apply Forall_map. eapply Forall_impl.
+    + apply Hpq.
+    + assumption.
+  - assumption.
 Qed.
 
 Lemma concat_self_false [A] (l : list (list A)):
@@ -170,7 +167,7 @@ Proof. Abort.
 
 Lemma NoDup_concat [A] (L: list (list A)):
   Forall (@NoDup _) L ->
-  Pairwise (fun l1 l2 => forall a, In a l1 -> ~ In a l2) L ->
+  ForallOrdPairs (fun l1 l2 => forall a, In a l1 -> ~ In a l2) L ->
   NoDup (concat L).
 Proof.
   intros H1 H2. induction L as [|l1]; [constructor|].
@@ -180,9 +177,8 @@ Proof.
     + apply Forall_inv_tail in H1. assumption.
     + inversion H2. assumption.
   - intros a aInl1 ainL%in_concat. destruct ainL as [l2 [l2inL ainL2]].
-    eapply Pairwise_inv in H2.
-    + specialize (H2 a). apply H2; [assumption|exact ainL2].
-    + assumption.
+    eapply ForallOrdPairs_inv in H2.
+    rewrite Forall_forall in H2. eapply H2; eassumption.
 Qed.
 
 Lemma seq_shift_n len start n:
