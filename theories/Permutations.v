@@ -182,18 +182,21 @@ Proof.
     f_equal. apply Permutation_length. symmetry. assumption.
 Qed.
 
-Lemma insert_at_inj x l i j:
-  ~ In x l -> i <= length l -> j <= length l ->
-  insert_at i x l = insert_at j x l -> i = j.
+Lemma insert_at_inj x l1 l2 i j (Hi: i <= length l1) (Hj: j <= length l2):
+  ~ In x l1 -> ~ In x l2 ->
+  insert_at i x l1 = insert_at j x l2 -> i = j /\ l1 = l2.
 Proof.
-  intros xInl Hi Hj H. unfold insert_at in H.
-  apply app_inj_pivot in H as [H1 _].
-  - apply (f_equal (@length _)) in H1.
-    now rewrite !firstn_length, !Nat.min_l in H1.
-  - intro E. apply xInl. clear -E.
+  intros Hx1 Hx2 H. unfold insert_at in H.
+  apply app_inj_pivot in H as [H1 H2].
+  - split.
+    + apply (f_equal (@length _)) in H1.
+      now rewrite !firstn_length, !Nat.min_l in H1.
+    + rewrite <- (firstn_skipn i) at 1.
+      rewrite <- (firstn_skipn j). congruence.
+  - intro E. apply Hx1. clear -E.
     rewrite <- (firstn_skipn i). apply in_or_app.
     left. assumption.
-  - intro E. apply xInl. clear -E.
+  - intro E. apply Hx2. clear -E.
     rewrite <- (firstn_skipn j). apply in_or_app.
     left. assumption.
 Qed.
@@ -203,18 +206,12 @@ Lemma additions_NoDup x l:
 Proof.
   intros Hl Hx. unfold additions.
   apply (InjectiveOn_map_NoDup (fun i => i <= length l)).
-  - intros i j Pi Pj Heq. eapply (insert_at_inj x l); try assumption.
+  - intros i j Pi Pj Heq.
+    eapply (insert_at_inj x l l); assumption.
   - apply Forall_forall. intros j H.
     apply in_seq in H as [_ H%le_S_n]. assumption.
   - apply seq_NoDup.
 Qed.
-
-Lemma additions_Proper x:
-  Morphisms.Proper
-  ((fun l1 l2 => (~ In x l1 /\ ~ In x l2) /\ l1 <> l2) ==>
-   (fun l1 l2 : list (list A) =>
-    forall a : list A, In a l1 -> ~ In a l2)) (additions x).
-Admitted.
 
 Theorem permutations_NoDup l:
   NoDup l -> NoDup (permutations l).
@@ -226,7 +223,9 @@ Proof.
       destruct Hxl as [l' [H1 H2%permutations_spec]]. subst xl.
       apply additions_NoDup; now rewrite <- H2.
     + apply (ForallOrdPairs_map (fun l1 l2 => (~ In x l1 /\ ~ In x l2) /\ l1 <> l2)).
-      * apply additions_Proper.
+      * clear. intros l1 l2 [[H1 H2] H3] xl1 H4%in_additions H5%in_additions.
+        destruct H4 as [i [Hi H4]]. destruct H5 as [j [Hj H5]]. subst xl1.
+        now apply insert_at_inj in H5 as [H5 H6].
       * apply ForallOrdPairs_and.
         -- apply ForallOrdPairs_and.
            ++ apply Forall_ForallOrdPairs_l, Forall_forall.
