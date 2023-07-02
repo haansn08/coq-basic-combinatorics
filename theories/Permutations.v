@@ -9,55 +9,6 @@ From BasicCombinatorics Require Import List.
   - https://github.com/math-comp/math-comp/blob/master/mathcomp/ssreflect/seq.v#L4326
 *)
 
-Section factorials.
-Fixpoint falling_fact n x :=
-match n, x with
-| 0, _ => 1
-| _, 0 => 0
-| S n', S x' => x * falling_fact n' x'
-end.
-
-Fixpoint rising_fact n x :=
-match n with
-| 0 => 1
-| S n' => x * rising_fact n' (S x)
-end.
-
-Lemma falling_fact_fact n: falling_fact n n = fact n.
-Proof.
-  induction n; [reflexivity|simpl].
-  rewrite IHn. reflexivity.
-Qed.
-
-Lemma rising_fact_S n x:
-  rising_fact (S n) x = (x + n) * rising_fact n x.
-Proof.
-  revert x. induction n; intros x.
-  - cbn. auto.
-  - remember (S n) as m. (* to avoid zealous cbn *)
-    cbn. rewrite IHn by auto.
-    subst m. cbn. lia. (* ??? *) 
-Qed.
-
-Lemma falling_raising_fact n x:
-  n <= S x -> falling_fact n x = rising_fact n (S x-n).
-Proof.
-  revert x. induction n.
-  - reflexivity.
-  - intros x H%le_S_n. rewrite rising_fact_S. destruct x.
-    + cbn. lia.
-    + cbn [falling_fact]. rewrite IHn by assumption.
-      replace (S (S x) - S n) with (S x - n) by lia.
-      rewrite Nat.sub_add by assumption. reflexivity.
-Qed.
-
-Lemma rising_fact_fact n: rising_fact n 1 = fact n.
-Proof.
-  induction n; [ reflexivity | ].
-  rewrite rising_fact_S, IHn; constructor.
-Qed.
-End factorials.
-
 Section permutations.
 Variable A : Type.
 Implicit Type l : list A.

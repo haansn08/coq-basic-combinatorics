@@ -1,4 +1,5 @@
 Require Import Bool FinFun.
+Require Import Factorial Arith Lia.
 From BasicCombinatorics Require Import List.
 
 Definition word := list bool.
@@ -177,8 +178,6 @@ Proof.
         subst l. discriminate H2.
 Qed.
 
-Require Import Factorial Arith Lia.
-
 Lemma binomials_n_lt_k n k:
   n < k -> binomials n k = [].
 Proof.
@@ -223,17 +222,17 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma div_add_distr a b c:
-  (a + b) / c = a / c + b / c.
-Proof.
-  destruct c; [reflexivity|].
-Admitted.
-
+From BasicCombinatorics Require Import Div.
+Import Nat.
 Lemma choose_recursion n k:
-  k < n -> choose (S n) (S k) = choose n k + choose n (S k).
+  k <= n -> choose (S n) (S k) = choose n k + choose n (S k).
 Proof.
-intro H. enough (fact (S n) = fact n * (S k)  + fact n * (n-k)).
-- unfold choose. rewrite H0.
+intro H. unfold choose.
+rewrite <- (Nat.mul_cancel_r _ _ (fact (S k))) by apply fact_neq_0.
+rewrite div_mul_mul. shelve.
+- apply fact_neq_0.
+- apply fact_neq_0.
+- apply choose_divides, le_n_S, H.
 Admitted.
 
 Theorem binomials_count n k:
@@ -248,7 +247,7 @@ Proof.
     + intros H%le_S_n%le_lt_eq_dec. destruct H.
       * rewrite app_length, !map_length.
         rewrite (IHn k), (IHn (S k)) by lia.
-        symmetry. apply choose_recursion. assumption.
+        symmetry. apply choose_recursion, lt_le_incl. assumption.
       * clear IHn. subst k.
         rewrite binomials_n_n, binomials_n_lt_k, choose_n_n; auto.
 Qed.
