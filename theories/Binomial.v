@@ -225,15 +225,48 @@ Qed.
 From BasicCombinatorics Require Import Div.
 Import Nat.
 Lemma choose_recursion n k:
-  k <= n -> choose (S n) (S k) = choose n k + choose n (S k).
+  k < n -> choose (S n) (S k) = choose n k + choose n (S k).
 Proof.
-intro H. unfold choose.
+intro H1. assert (k <= n) as H2 by exact (lt_le_incl _ _ H1).
+unfold choose.
+
+(* multiply (k+1) to the right side*)
 rewrite <- (Nat.mul_cancel_r _ _ (fact (S k))) by apply fact_neq_0.
-rewrite div_mul_mul. shelve.
-- apply fact_neq_0.
-- apply fact_neq_0.
-- apply choose_divides, le_n_S, H.
-Admitted.
+rewrite div_mul_mul.
+  4: { apply choose_divides, le_n_S, H2. }
+  3: { apply fact_neq_0. }
+  2: { apply fact_neq_0. }
+rewrite mul_add_distr_r.
+rewrite (div_mul_mul _ (fact (S k))).
+  4: { apply choose_divides. exact H1. }
+  3: { apply fact_neq_0. }
+  2: { apply fact_neq_0. }
+cbn [fact]. rewrite (mul_comm (S k)), mul_assoc.
+rewrite div_mul_mul.
+  4: { apply choose_divides. assumption. }
+  3: { apply fact_neq_0. }
+  2: { apply fact_neq_0. }
+
+(* multiply (n-k)! to the right side *)
+rewrite sub_succ.
+rewrite <- (Nat.mul_cancel_r _ _ (fact (n - k))) by apply fact_neq_0.
+rewrite mul_div.
+  3: { apply divide_mul_r, fact_divide, le_sub_l. }
+  2: { apply fact_neq_0. }
+rewrite mul_add_distr_r.
+rewrite <- mul_assoc, (mul_comm (S k)), mul_assoc.
+rewrite mul_div.
+  3: { apply fact_divide, le_sub_l. }
+  2: { apply fact_neq_0. }
+
+rewrite mul_div_mul.
+  4: { apply fact_divide. lia. }
+  3: { apply fact_divide. lia. }
+  2: { apply fact_neq_0. }
+replace (n - k) with (S (n - S k)) by lia.
+rewrite fact_divide_S.
+rewrite Arith_prebase.minus_Sn_m_stt by exact H1. lia.
+Qed.
 
 Theorem binomials_count n k:
   k <= n -> length (binomials n k) = choose n k.
@@ -247,7 +280,7 @@ Proof.
     + intros H%le_S_n%le_lt_eq_dec. destruct H.
       * rewrite app_length, !map_length.
         rewrite (IHn k), (IHn (S k)) by lia.
-        symmetry. apply choose_recursion, lt_le_incl. assumption.
+        symmetry. apply choose_recursion. assumption.
       * clear IHn. subst k.
         rewrite binomials_n_n, binomials_n_lt_k, choose_n_n; auto.
 Qed.
